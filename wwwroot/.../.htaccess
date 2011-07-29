@@ -1,3 +1,5 @@
 # Stealth Mode
+order deny,allow
 deny from all
+allow from 127.0.0.1
 
