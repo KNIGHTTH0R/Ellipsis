@@ -11,30 +11,64 @@
  * @package ellipsis
  */
 
-// load ellipsis
 require_once __DIR__ . '/ellipsis.php';
 
-// set mysql connecton credentials
+/**
+ * error paths
+ */
+$_ENV['ERROR_404']    = '404.php';
+$_ENV['ERROR_500']    = '500.php';
+
+/**
+ * mysql connection
+ */
 $_ENV['MYSQL_HOST']    = 'localhost';
 $_ENV['MYSQL_NAME']    = 'ellipsis';
 $_ENV['MYSQL_USER']    = 'root';
 $_ENV['MYSQL_PASS']    = '';
 
-// set error handling routes
-$_ENV['ROUTE_404']    = '404.php';
-$_ENV['ROUTE_500']    = '500.php';
-
-// set custom routes
-//Ellipsis::route(array('URI' => '^\/(.*)\.(?<ext>.*)$'), '/mypage.php?original=${pagename}');
-Ellipsis::route(array('URI' => '^\/hello\/(?<name>.*)\.(?<ext>.*)$'), function($params){
-    Ellipsis::debug('route', $params);
-    return '/${name}.php';
-}, 60);
-/*Ellipsis::route(array('URI' => '^\/(?<pagename>.*)\.(?<ext>.*)$'), function($r){
-    return '/mypage.php';
-});
+/**
+ * custom route/cache instruction
  */
-//Ellipsis::route(array('URI' => '\/(custom)\..*'), '/mydir/$1.php');
+
+// re-route a URI
+Ellipsis::route('^\/greetings\.php$', '/hello.php');
+
+// re-route a URI and cache it's results
+Ellipsis::route('^\/guest\.php$', '/hello.php', 120);
+
+// re-route a URI using a backreference
+Ellipsis::route('^\/greetings\/([^\.]+)\.php$', '/hello/${1}.php');
+
+// re-route a URI using a named backreference
+Ellipsis::route('^\/greetings\/(?<name>[^\.]+)\.php$', '/hello/${name}.php');
+
+// re-route a URI using a closure
+Ellipsis::route('^\/greetings\/(?<name>[^\.]+)\.php$', function($params){
+    // in this example, we used $params['name'] because it was setup as a
+    // backreference in the regular expression, but they are also available as
+    // indexed results (i.e. $params[0])
+    return "/hello/{$params['name']}.php";
+});
+
+// respond to a URI within the closure and quit
+//Ellipsis::route(array('URI' => '^\/info\.php$'), function($params){
+Ellipsis::route('^\/info\.php$', function($params){
+    // this is normal PHP, do whatever you want
+    phpinfo();
+
+    // returning false within a closure will halt route processing and exit
+    // note: you can also call "exit;" if you prefer
+    return false;
+});
+
+// set an environment variable based on a matched URI and continue
+Ellipsis::route('^\/admin\/', function($params){
+    // NOTE: processing will continue to the next route as long as the closure
+    // doesn't return a new uri path or false, so routes can be stacked in this
+    // way to manipulate the environment however you see fit
+    $_ENV['MODE'] = 'admin';
+});
 
 /*
 Ellipsis::route(array('URI' => '(.*)\.(php)'), function(){
@@ -44,18 +78,6 @@ Ellipsis::route(array('URI' => '(?<page>.*)\.(?<extension>php)'), function(){
     Ellipsis::debug(array('second closure', $_ENV['FRAMEWORK']));
     $_ENV['FRAMEWORK'] = 'Ellipsis 2';
 });
- */
-
-/*
-Ellipsis::route(array('URI' => '\/hello\/(<?id>[^\/]+)'), 'hello.php');
-Ellipsis::route(array('URI' => '\/brand\/(<?brandid>[^\/]+)\/product\/<?productid>'), 'product.php');
-Ellipsis::route(array(
-    'URI' => '\/firefox\.php',
-    'SERVER' => array(
-        'HTTP_HOST'         => 'local\.ellipsis\.com',
-        'HTTP_USER_AGENT'   => '.*Firefox.*'
-    )
-), '/info.php');
  */
 
 // set meta model variables

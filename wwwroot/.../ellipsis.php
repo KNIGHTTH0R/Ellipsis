@@ -118,19 +118,21 @@ class Ellipsis {
                                 array_shift($matches);
                                 foreach($matches as $k => $v){
                                     if (is_numeric($k)){
-                                        $route['params']['indexed'][] = $v;
+                                        $route['params'][] = $v;
                                     } else {
-                                        $route['params']['named'][$k] = $v;
+                                        $route['params'][$k] = $v;
                                     }
                                 }
                             } else if (is_array($matches) && count($matches) > 1){
                                 // capture backreferences by index
                                 array_shift($matches);
-                                array_push($route['params']['indexed'], $matches);
+                                array_push($route['params'], $matches);
                             }
                         } else {
-                            $match = false;
-                            break 2;
+                            if (!$matches || count($matches) <= 0){
+                                $match = false;
+                                break 2;
+                            }
                         }
                         break;
                     case 'QUERY':
@@ -195,10 +197,10 @@ class Ellipsis {
                         preg_match_all('/\$\{([^\}]+)\}/', $route['path_info'], $matches);
                         if (count($matches) > 1){
                             foreach($matches[1] as $match){
-                                if (is_numeric($match) && isset($route['params']['indexed'][$match])){
-                                    $route['path_info'] = preg_replace('/\$\{' . $match . '\}/', $route['params']['indexed'][$match], $route['path_info']);
-                                } else if (isset($route['params']['named']["{$match}"])){
-                                    $route['path_info'] = preg_replace('/\$\{' . $match . '\}/', $route['params']['named'][$match], $route['path_info']);
+                                if (is_numeric($match) && isset($route['params'][$match])){
+                                    $route['path_info'] = preg_replace('/\$\{' . $match . '\}/', $route['params'][$match], $route['path_info']);
+                                } else if (isset($route['params']["{$match}"])){
+                                    $route['path_info'] = preg_replace('/\$\{' . $match . '\}/', $route['params'][$match], $route['path_info']);
                                 } else {
                                     // leaving a backreference behind will result in an invalid file path
                                     self::fail(500, 'Invalid Path: Closure backreference could not be replaced');
@@ -247,17 +249,18 @@ class Ellipsis {
     /**
      * configure a new route to be used
      *
-     * @param array $conditions
+     * @param mixed $conditions (uri_param | conditions)
      * @param mixed $instruction (path_info | closure)
      * @param integer $cache (seconds)
      * @return void
      */
     public static function route($conditions, $instruction, $cache = null){
+        $conditions = is_string($conditions) ? array('URI' => $conditions) : $conditions;
         $path_info  = is_string($instruction) ? $instruction : null;
         $closure    = is_object($instruction) ? $instruction : null;
         $_ENV['ROUTES'][] = array(
             'conditions'    => $conditions,
-            'params'        => array('indexed' => array(), 'named' => array()),
+            'params'        => array(),
             'path_info'     => $path_info,
             'closure'       => $closure,
             'cache'         => $cache
@@ -314,9 +317,9 @@ class Ellipsis {
      */
     public static function fail($code, $message = null){
         self::debug("Error ($code): $message");
-        if (isset($_ENV['ROUTE_' . $code])){
-            if (is_file($_ENV['SCRIPT_SRC'] . '/' . $_ENV['ROUTE_' . $code])){
-                include $_ENV['SCRIPT_SRC'] . '/' . $_ENV['ROUTE_' . $code];
+        if (isset($_ENV['ERROR_' . $code])){
+            if (is_file($_ENV['SCRIPT_SRC'] . '/' . $_ENV['ERROR_' . $code])){
+                include $_ENV['SCRIPT_SRC'] . '/' . $_ENV['ERROR_' . $code];
                 exit;
             }
         }
