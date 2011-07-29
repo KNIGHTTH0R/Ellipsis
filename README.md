@@ -25,9 +25,10 @@ Apache 2.x
 
 Optional Software
 --------------------------------------------------------------------------------
-MySQL 5.x or higher
-ChromePHP Browser Extension
-FirePHP Browser Extension
+MySQL 5.x or higher (required by MySQL module && Repository module)
+ChromePHP Browser Extension (useful for Ellipsis::debug)
+FirePHP Browser Extension (useful for Ellipsis::debug)
+cURL 7.21.x (required by HTTP module)
 
 Installation Instructions
 --------------------------------------------------------------------------------
