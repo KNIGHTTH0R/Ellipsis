@@ -32,6 +32,11 @@ $_ENV['MYSQL_PASS']    = '';
  */
 
 // re-route a URI
+Ellipsis::route('^\/foo\.php$', function(){
+    Foo::bar('foo bar yo');
+});
+
+// re-route a URI
 Ellipsis::route('^\/greetings\.php$', '/hello.php');
 
 // re-route a URI and cache it's results
@@ -60,7 +65,7 @@ Ellipsis::route('^\/info\.php$', function($params){
     // returning false within a closure will halt route processing and exit
     // note: you can also call "exit;" if you prefer
     return false;
-});
+}, 3600);
 
 // set an environment variable based on a matched URI and continue
 Ellipsis::route('^\/admin\/', function($params){
