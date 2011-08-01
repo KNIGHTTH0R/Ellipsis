@@ -15,6 +15,16 @@
  */
 function __autoload($class_name){
     if (preg_match('/^[a-z]+$/i', $class_name)){
+        // first try to load from the application library
+        if (is_dir($_ENV['APP_LIB'])){
+            $path = $_ENV['APP_LIB'] . '/' . strtolower($class_name) . '.php';
+            if (is_file($path)){
+                require $path;
+                return;
+            }
+        }
+
+        // second try to load from the framework library
         $path = $_ENV['SCRIPT_LIB'] . '/' . strtolower($class_name) . '.php';
         if (is_file($path)){
             require $path;

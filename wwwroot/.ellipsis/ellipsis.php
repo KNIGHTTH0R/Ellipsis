@@ -32,7 +32,8 @@ class Ellipsis {
             array(
                 'SCRIPT_ROOT'   => __DIR__,
                 'SCRIPT_LIB'    => __DIR__ . '/lib',
-                'SCRIPT_APP'    => __DIR__ . '/app',
+                'APP_ROOT'      => __DIR__ . '/app',
+                'APP_LIB'       => __DIR__ . '/app/lib',
                 'DEBUG'         => true,
                 'ROUTES'        => array(),
                 'PARAMS'        => array(),
@@ -228,7 +229,7 @@ class Ellipsis {
         }
 
         // process source files
-        $source_paths = scandir_recursive($_ENV['SCRIPT_APP'], 'relative');
+        $source_paths = scandir_recursive($_ENV['APP_ROOT'], 'relative');
         foreach($source_paths as $path){
             if ($_SERVER['PATH_INFO'] == $path){
                 self::load($path, $route['cache']);
@@ -296,12 +297,12 @@ class Ellipsis {
         header("Content-Type: $mime_type");
 
         // load appropriate resource
-        if (is_file($_ENV['SCRIPT_APP'] . $path)){
+        if (is_file($_ENV['APP_ROOT'] . $path)){
             if (preg_match('/\.php$/', $path)){
-                include $_ENV['SCRIPT_APP'] . $path;
+                include $_ENV['APP_ROOT'] . $path;
             } else {
-                $fp = fopen($_ENV['SCRIPT_APP'] . $path, 'rb');
-                header("Content-Length: " . filesize($_ENV['SCRIPT_APP'] . $path));
+                $fp = fopen($_ENV['APP_ROOT'] . $path, 'rb');
+                header("Content-Length: " . filesize($_ENV['APP_ROOT'] . $path));
                 fpassthru($fp);
             }
         } else {
@@ -323,8 +324,8 @@ class Ellipsis {
     public static function fail($code, $message = null){
         self::debug("Error ($code): $message");
         if (isset($_ENV['ERROR_' . $code])){
-            if (is_file($_ENV['SCRIPT_APP'] . '/' . $_ENV['ERROR_' . $code])){
-                include $_ENV['SCRIPT_APP'] . '/' . $_ENV['ERROR_' . $code];
+            if (is_file($_ENV['APP_ROOT'] . '/' . $_ENV['ERROR_' . $code])){
+                include $_ENV['APP_ROOT'] . '/' . $_ENV['ERROR_' . $code];
                 exit;
             }
         }
