@@ -16,7 +16,7 @@ include __DIR__ . '/php.php';
 $now = time();
 
 // find all files in the wwwroot directory (i.e. the "cache" directory)
-$cached = scandir_recursive($_SERVER['DOCUMENT_ROOT'], 'relative', array('...'));
+$cached = scandir_recursive($_SERVER['DOCUMENT_ROOT'], 'relative', array('.ellipsis'));
 
 // find all files joined with a timestamp version
 foreach($cached as $cache){
