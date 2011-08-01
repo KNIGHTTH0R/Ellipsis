@@ -6,12 +6,15 @@ Licensed under the [MIT](http://www.opensource.org/licenses/mit-license.php)
 
 Introduction
 --------------------------------------------------------------------------------
-Ellipsis is a PHP micro-framework written to help get a web application started
-and then get out of the way. Out of the box this project is a boilerplate web
-application with the basics built-in to either use or ignore; such as routing, 
-caching, auto loading of modules, unit testing, mysql connectivity, repository 
-management, and a browser-based debugger. All of which you can use, modify, 
-extend or ignore ... as you please.
+Ellipsis is a micro-framework written in PHP for rapid application development 
+and prototyping. At its core the Ellipsis project provides a developer with the
+ability to create extremely simple and extremely complex rules specific to 
+application routing and caching. Aside from that a few pre-built modules are 
+provided that help accomplish common every-day development tasks such as unit 
+testing, mysql connectivity, data repository modeling, image resizing and 
+browser debugging (via firephp and chromephp); all of which you can ignore. This
+project is licensed as MIT software so, put quite simply, you are free to do 
+anything you want with it except claim authorship.
 
 Release Notes
 --------------------------------------------------------------------------------
