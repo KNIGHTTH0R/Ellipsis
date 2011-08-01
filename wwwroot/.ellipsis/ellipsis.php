@@ -182,8 +182,10 @@ class Ellipsis {
                 }
             }
             if ($match){
-                // this route matched, process it
+                // this route matched, decide if it should be processed
+                $process = false;
                 if ($route['closure']){
+                    // process these instructions as a closure
                     $result = $route['closure']($route['params']);
                     if ($result === false){
                         // this closure returned false, exit
@@ -191,32 +193,35 @@ class Ellipsis {
                         exit;
                     } else if (is_string($result)){
                         // this closure returned a new path, set it and load it
-                        $route['path_info'] = $result;
-
-                        // perform backreference replacements first (if applicable)
-                        preg_match_all('/\$\{([^\}]+)\}/', $route['path_info'], $matches);
-                        if (count($matches) > 1){
-                            foreach($matches[1] as $match){
-                                if (is_numeric($match) && isset($route['params'][$match])){
-                                    $route['path_info'] = preg_replace('/\$\{' . $match . '\}/', $route['params'][$match], $route['path_info']);
-                                } else if (isset($route['params']["{$match}"])){
-                                    $route['path_info'] = preg_replace('/\$\{' . $match . '\}/', $route['params'][$match], $route['path_info']);
-                                } else {
-                                    // leaving a backreference behind will result in an invalid file path
-                                    self::fail(500, 'Invalid Path: Closure backreference could not be replaced');
-                                }
-                            }
-                        }
-                        if (!preg_match('/\$\{/', $route['path_info']) && preg_match('/' . preg_quote($route['path_info'], '/U') . '/', $_SERVER['PATH_INFO'])){
-                            self::load($route['path_info'], $route['cache']);
-                        }
+                        $route['rewrite_path'] = $result;
+                        $process = true;
                     } else {
                         // this closure has finished, on to the next route
                         continue;
                     }
                 } else {
-                    if (!preg_match('/\$\{/', $route['path_info']) && preg_match('/' . preg_quote($route['path_info'], '/U') . '/', $_SERVER['PATH_INFO'])){
-                        self::load($route['path_info'], $route['cache']);
+                    $process = true;
+                }
+
+                if ($process){
+                    // perform backreference replacements first (if applicable)
+                    preg_match_all('/\$\{([^\}]+)\}/', $route['rewrite_path'], $matches);
+                    if (count($matches) > 1){
+                        foreach($matches[1] as $match){
+                            if (is_numeric($match) && isset($route['params'][$match])){
+                                $route['rewrite_path'] = preg_replace('/\$\{' . $match . '\}/', $route['params'][$match], $route['rewrite_path']);
+                            } else if (isset($route['params']["{$match}"])){
+                                $route['rewrite_path'] = preg_replace('/\$\{' . $match . '\}/', $route['params'][$match], $route['rewrite_path']);
+                            } else {
+                                // leaving a backreference behind will result in an invalid file path
+                                self::fail(500, 'Invalid Path: Closure backreference could not be replaced');
+                            }
+                        }
+                    }
+
+                    // process rewrite_path
+                    if (!preg_match('/\$\{/', $route['rewrite_path'])){
+                        self::load($route['rewrite_path'], $route['cache']);
                     }
                 }
             }
@@ -250,18 +255,18 @@ class Ellipsis {
      * configure a new route to be used
      *
      * @param mixed $conditions (uri_param | conditions)
-     * @param mixed $instruction (path_info | closure)
+     * @param mixed $instruction (rewrite_path | closure)
      * @param integer $cache (seconds)
      * @return void
      */
     public static function route($conditions, $instruction, $cache = null){
-        $conditions = is_string($conditions) ? array('URI' => $conditions) : $conditions;
-        $path_info  = is_string($instruction) ? $instruction : null;
-        $closure    = is_object($instruction) ? $instruction : null;
+        $conditions     = is_string($conditions) ? array('URI' => $conditions) : $conditions;
+        $rewrite_path   = is_string($instruction) ? $instruction : null;
+        $closure        = is_object($instruction) ? $instruction : null;
         $_ENV['ROUTES'][] = array(
             'conditions'    => $conditions,
             'params'        => array(),
-            'path_info'     => $path_info,
+            'rewrite_path'  => $rewrite_path,
             'closure'       => $closure,
             'cache'         => $cache
         );
