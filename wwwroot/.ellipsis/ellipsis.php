@@ -85,7 +85,7 @@ class Ellipsis {
             }
         }
 
-        // finally, let nature take it's course
+        // finally, let nature take its course
         ob_end_flush();
         exit;
     }
