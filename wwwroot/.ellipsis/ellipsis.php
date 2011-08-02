@@ -242,20 +242,14 @@ class Ellipsis {
                         // match a specific URI pattern
                         preg_match('/' . $condition . '/U', $_SERVER['REQUEST_URI'], $matches);
                         if ($matches && count($matches) > 1){
-                            if (is_associative_array($matches)){
-                                // capture backreferences by index and name
-                                array_shift($matches);
-                                foreach($matches as $k => $v){
-                                    if (is_numeric($k)){
-                                        $route['params'][] = $v;
-                                    } else {
-                                        $route['params'][$k] = $v;
-                                    }
+                            // capture backreferences by index and name
+                            array_shift($matches);
+                            foreach($matches as $k => $v){
+                                if (is_numeric($k)){
+                                    $route['params'][($k+1)] = $v;
+                                } else {
+                                    $route['params'][$k] = $v;
                                 }
-                            } else if (is_array($matches) && count($matches) > 1){
-                                // capture backreferences by index
-                                array_shift($matches);
-                                array_push($route['params'], $matches);
                             }
                         } else {
                             if (!$matches || count($matches) <= 0){
@@ -314,19 +308,27 @@ class Ellipsis {
                 // this route matched, decide if it should be processed
                 $process = false;
                 if ($route['closure']){
+                    // capture the current cache setting (might need to undo)
+                    $cache_time = $_ENV['CACHE_TIME'];
+                    $_ENV['CACHE_TIME'] = $route['cache'];
+
                     // process these instructions as a closure
                     $result = $route['closure']($route['params']);
                     if ($result === false){
-                        // this closure returned false, exit
-                        self::cache($route['cache']);
+                        // this closure returned false, forcibly exit
                         exit;
-                    } else if (is_string($result)){
-                        // this closure returned a new path, set it and load it
-                        $route['rewrite_path'] = $result;
-                        $process = true;
                     } else {
-                        // this closure has finished, on to the next route
-                        continue;
+                        // undo cache setting
+                        $_ENV['CACHE_TIME'] = $cache_time;
+
+                        if (is_string($result)){
+                            // this closure returned a new path, set it and load it
+                            $route['rewrite_path'] = $result;
+                            $process = true;
+                        } else {
+                            // this closure has finished, on to the next route
+                            continue;
+                        }
                     }
                 } else {
                     $process = true;
@@ -337,6 +339,8 @@ class Ellipsis {
                     preg_match_all('/\$\{([^\}]+)\}/', $route['rewrite_path'], $matches);
                     if (count($matches) > 1){
                         foreach($matches[1] as $match){
+                            self::debug('debugging backreference', $match);
+                            self::debug('debugging backreference', $route['params']);
                             if (is_numeric($match) && isset($route['params'][$match])){
                                 $route['rewrite_path'] = preg_replace('/\$\{' . $match . '\}/', $route['params'][$match], $route['rewrite_path']);
                             } else if (isset($route['params']["{$match}"])){
@@ -350,7 +354,8 @@ class Ellipsis {
 
                     // process rewrite_path
                     if (!preg_match('/\$\{/', $route['rewrite_path'])){
-                        self::load($route['rewrite_path'], $route['cache']);
+                        $_ENV['CACHE_TIME'] = $route['cache'];
+                        self::load($route['rewrite_path']);
                     }
                 }
             }
@@ -360,7 +365,8 @@ class Ellipsis {
         $source_paths = scandir_recursive($_ENV['APP_ROOT'], 'relative');
         foreach($source_paths as $path){
             if ($_SERVER['PATH_INFO'] == $path){
-                self::load($path, $route['cache']);
+                $_ENV['CACHE_TIME'] = $route['cache'];
+                self::load($path);
             }
         }
 
@@ -406,10 +412,9 @@ class Ellipsis {
      * note: this is the end process so it must exit when finished
      *
      * @param string $path
-     * @param integer $cache
      * @return void
      */
-    public static function load($path, $cache = null){
+    public static function load($path){
         // find appropriate mime type
         if (preg_match('/\.php$/', $_SERVER['PATH_INFO'])){
             $mime_type = 'text/html';
@@ -438,7 +443,6 @@ class Ellipsis {
         }
 
         // no more computing beyond this point
-        if ($cache != null) self::cache($cache);
         exit;
     }
 
