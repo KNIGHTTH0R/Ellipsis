@@ -208,7 +208,7 @@ class Ellipsis {
             }
         }
 
-        // finally, let nature take it's course
+        // finally, let nature take its course
         ob_end_flush();
         exit;
     }
@@ -240,22 +240,21 @@ class Ellipsis {
                         break;
                     case 'URI':
                         // match a specific URI pattern
-                        preg_match('/' . $condition . '/U', $_SERVER['REQUEST_URI'], $matches);
-                        if ($matches && count($matches) > 1){
-                            // capture backreferences by index and name
-                            array_shift($matches);
-                            foreach($matches as $k => $v){
-                                if (is_numeric($k)){
-                                    $route['params'][($k+1)] = $v;
-                                } else {
-                                    $route['params'][$k] = $v;
+                        if (preg_match('/' . $condition . '/U', $_SERVER['REQUEST_URI'], $matches)){
+                            if (count($matches) > 1){
+                                // capture backreferences by index and name
+                                array_shift($matches);
+                                foreach($matches as $k => $v){
+                                    if (is_numeric($k)){
+                                        $route['params'][($k+1)] = $v;
+                                    } else {
+                                        $route['params'][$k] = $v;
+                                    }
                                 }
                             }
                         } else {
-                            if (!$matches || count($matches) <= 0){
-                                $match = false;
-                                break 2;
-                            }
+                            $match = false;
+                            break 2;
                         }
                         break;
                     case 'QUERY':

@@ -20,24 +20,22 @@ $_ENV['MYSQL_PASS']    = '';
  */
 
 // re-route a URI
-Ellipsis::route('^\/foo\.php$', function(){
-    Foo::bar('foo bar yo');
-});
-
-// re-route a URI
 Ellipsis::route('^\/greetings\.php$', '/hello.php');
 
-// re-route a URI and cache it's results
-Ellipsis::route('^\/guest\.php$', '/hello.php', 120);
+// re-route a URI and cache it's results for 2 minutes (120 seconds)
+Ellipsis::route('^\/120seconds\.php$', '/hello.php', 120);
 
-// re-route a URI using a backreference
-Ellipsis::route('^\/greetings\/([^\.]+)\.php$', '/hello/${1}.php');
+// re-route a URI using an indexed backreference
+// note: if /{$1}.php does not exist, this will throw a 404, try bob
+Ellipsis::route('^\/indexed\/([^\.]+)\.php$', '/${1}.php');
 
 // re-route a URI using a named backreference
-Ellipsis::route('^\/greetings\/(?<name>[^\.]+)\.php$', '/hello/${name}.php');
+// note: if /{$name}.php does not exist, this will throw a 404, try sally
+Ellipsis::route('^\/named\/(?<name>[^\.]+)\.php$', '/${name}.php');
 
 // re-route a URI using a closure
-Ellipsis::route('^\/greetings\/(?<name>[^\.]+)\.php$', function($params){
+// note: if /{$name}.php does not exist, this will throw a 404, try sally
+Ellipsis::route('^\/closured\/(?<name>[^\.]+)\.php$', function($params){
     // in this example, we used $params['name'] because it was setup as a
     // backreference in the regular expression, but they are also available as
     // indexed results (i.e. $params[0])
@@ -45,32 +43,32 @@ Ellipsis::route('^\/greetings\/(?<name>[^\.]+)\.php$', function($params){
 });
 
 // respond to a URI within the closure and quit
-Ellipsis::route('^\/phpinfo\.php$', function($params){
+Ellipsis::route('^\/testinfo\.php$', function($params){
     // this is normal PHP, do whatever you want
     phpinfo();
 
     // returning false within a closure will halt route processing and exit
-    // note: you can also call "exit;" if you prefer
+    // note: you can also just 'exit;' if you prefer
     return false;
-}, 3600);
+});
 
 // set an environment variable based on a matched URI and continue
-Ellipsis::route('^\/admin\/', function($params){
+Ellipsis::route('^\/admin\/(?<admin_section>[^\.]+)\/', function($params){
     // NOTE: processing will continue to the next route as long as the closure
     // doesn't return a new uri path or false, so routes can be stacked in this
     // way to manipulate the environment however you see fit
-    $_ENV['MODE'] = 'admin';
+    Ellipsis::debug('testing');
+    $_ENV['ADMIN_SECTION'] = $params['admin_section'];
 });
 
-/*
-Ellipsis::route(array('URI' => '(.*)\.(php)'), function(){
-    $_ENV['FRAMEWORK'] = 'Ellipsis 1';
+// test the previously set environment variable
+Ellipsis::route('^\/admin\/[^\/]+\/test\.php$', function($params){
+    echo "Testing ADMIN_SECTION = {$_ENV['ADMIN_SECTION']}";
+    exit;
 });
-Ellipsis::route(array('URI' => '(?<page>.*)\.(?<extension>php)'), function(){
-    Ellipsis::debug(array('second closure', $_ENV['FRAMEWORK']));
-    $_ENV['FRAMEWORK'] = 'Ellipsis 2';
-});
- */
+
+// show some of the other routing variables
+
 
 // set meta model variables
 $_ENV['META_PREFIX']  = 'e_';
