@@ -71,7 +71,8 @@ class Ellipsis {
         if ($_ENV['CACHE_TIME'] > 0){
             // define the file pair
             $output_file    = $_SERVER['DOCUMENT_ROOT'] . $_SERVER['REQUEST_URI'];
-            $cache_file     = $output_file . '.' . (time() + $_ENV['CACHE_TIME']);
+            $cache_time     = time() + $_ENV['CACHE_TIME'];
+            $cache_file     = $output_file . '.' . $cache_time;
 
             // touch the files
             if (touch_recursive($output_file) && touch_recursive($cache_file)){
@@ -82,6 +83,7 @@ class Ellipsis {
                 $fp = fopen($output_file, 'wb');
                 fwrite($fp, $buffer);
                 fclose($fp);
+                self::debug("Cache Time: " . date('l jS \of F Y h:i:s A T', $cache_time));
             }
         }
 
@@ -97,6 +99,11 @@ class Ellipsis {
      * @return void
      */
     public static function run(){
+        // find and load the app config
+        if (is_file($_ENV['APP_ROOT'] . '/config.php')){
+            include $_ENV['APP_ROOT'] . '/config.php';
+        }
+
         // process routes
         foreach($_ENV['ROUTES'] as $route){
             // match the conditions of the route
