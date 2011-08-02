@@ -8,12 +8,6 @@
  */
 
 /**
- * error paths
- */
-$_ENV['ERROR_404']    = '404.php';
-$_ENV['ERROR_500']    = '500.php';
-
-/**
  * mysql connection
  */
 $_ENV['MYSQL_HOST']    = 'localhost';
