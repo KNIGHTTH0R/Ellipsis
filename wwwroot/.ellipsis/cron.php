@@ -70,7 +70,7 @@ if (isset($argv) && count($argv) >= 2){
         $now = time();
 
         // find all files in the wwwroot directory (i.e. the "cache" directory)
-        $cached = scandir_recursive($cache_dir, 'absolute', array('.ellipsis'));
+        $cached = scandir_recursive($cache_dir, 'absolute', array('/.*'));
 
         // find all files joined with a timestamp version
         foreach($cached as $cache){
