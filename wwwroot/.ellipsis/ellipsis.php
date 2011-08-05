@@ -31,9 +31,9 @@ class Ellipsis {
             array(
                 'SCRIPT_ROOT'   => __DIR__,
                 'SCRIPT_LIB'    => __DIR__ . '/lib',
-                'APP_ROOT'      => __DIR__ . '/app',
-                'APP_LIB'       => __DIR__ . '/app/lib',
                 'DEBUG'         => true,
+                'CURRENT'       => null,
+                'APPS'          => array(),
                 'ROUTES'        => array(),
                 'PARAMS'        => array(),
                 'CACHE_TIME'    => null,
@@ -216,13 +216,25 @@ class Ellipsis {
     /**
      * run the current request through Ellipsis
      *
-     * @param void
+     * @param mixed $apps (app | apps)
      * @return void
      */
-    public static function run(){
-        // find and load the app config
-        if (is_file($_ENV['APP_ROOT'] . '/config.php')){
-            include $_ENV['APP_ROOT'] . '/config.php';
+    public static function run($apps){
+        $apps = is_array($apps) ? $apps : array($apps);
+
+        // load the ellipsis config
+        include "{$_ENV['SCRIPT_ROOT']}/config.php";
+
+        // find and load the app config(s)
+        foreach($apps as $app){
+            if (is_file("{$_SERVER['DOCUMENT_ROOT']}/.{$app}/config.php")){
+                $_ENV['CURRENT'] = $app;
+                $_ENV['APPS'][$app] = array(
+                    'root'  => "{$_SERVER['DOCUMENT_ROOT']}/.{$app}",
+                    'lib'   => "{$_SERVER['DOCUMENT_ROOT']}/.{$app}/lib"
+                );
+                include "{$_SERVER['DOCUMENT_ROOT']}/.{$app}/config.php";
+            }
         }
 
         // process routes
@@ -361,7 +373,7 @@ class Ellipsis {
         }
 
         // process source files
-        $source_paths = scandir_recursive($_ENV['APP_ROOT'], 'relative');
+        $source_paths = scandir_recursive($_ENV['APPS'][$_ENV['CURRENT']]['root'], 'relative');
         foreach($source_paths as $path){
             if ($_SERVER['PATH_INFO'] == $path){
                 $_ENV['CACHE_TIME'] = $route['cache'];
@@ -398,6 +410,7 @@ class Ellipsis {
         $rewrite_path   = is_string($instruction) ? $instruction : null;
         $closure        = is_object($instruction) ? $instruction : null;
         $_ENV['ROUTES'][] = array(
+            'application'   => $_ENV['CURRENT'],
             'conditions'    => $conditions,
             'params'        => array(),
             'rewrite_path'  => $rewrite_path,
@@ -429,12 +442,12 @@ class Ellipsis {
         header("Content-Type: $mime_type");
 
         // load appropriate resource
-        if (is_file($_ENV['APP_ROOT'] . $path)){
+        if (is_file($_ENV['APPS'][$_ENV['CURRENT']]['root'] . $path)){
             if (preg_match('/\.php$/', $path)){
-                include $_ENV['APP_ROOT'] . $path;
+                include $_ENV['APPS'][$_ENV['CURRENT']]['root'] . $path;
             } else {
-                $fp = fopen($_ENV['APP_ROOT'] . $path, 'rb');
-                header("Content-Length: " . filesize($_ENV['APP_ROOT'] . $path));
+                $fp = fopen($_ENV['APPS'][$_ENV['CURRENT']]['root'] . $path, 'rb');
+                header("Content-Length: " . filesize($_ENV['APPS'][$_ENV['CURRENT']]['root'] . $path));
                 fpassthru($fp);
             }
         } else {
@@ -456,12 +469,12 @@ class Ellipsis {
         if (isset($_ENV['HTTP_CODE'][$code])){
             self::debug("{$code} - {$message}", $_ENV['HTTP_CODE'][$code]);
             if (isset($_ENV['HTTP_CODE'][$code]['path'])){
-                if (is_file($_ENV['APP_ROOT'] . '/' . $_ENV['HTTP_CODE'][$code]['path'])){
+                if (is_file($_ENV['APPS'][$_ENV['CURRENT']]['root'] . '/' . $_ENV['HTTP_CODE'][$code]['path'])){
                     $PARAMS['ERROR_CODE'] = $code;
                     $PARAMS['ERROR_TITLE'] = $_ENV['HTTP_CODE'][$code]['title'];
                     $PARAMS['ERROR_DESCRIPTION'] = $_ENV['HTTP_CODE'][$code]['description'];
                     $PARAMS['ERROR_TRANSLATION'] = $_ENV['HTTP_CODE'][$code]['translation'];
-                    include $_ENV['APP_ROOT'] . '/' . $_ENV['HTTP_CODE'][$code]['path'];
+                    include $_ENV['APPS'][$_ENV['CURRENT']]['root'] . '/' . $_ENV['HTTP_CODE'][$code]['path'];
                     exit;
                 }
             } else {
