@@ -24,6 +24,38 @@ $_ENV['MYSQL_PASS']    = '';
  * custom route/cache instruction
  */
 
+// COOKIE examples
+
+// Check if lang cookie value is empty
+Ellipsis::route(array('COOKIE'=>array(
+	'lang'=>'^\s*$')), function(){
+		// create cookie lang value
+		setcookie('lang','UK');
+		Ellipsis::debug('setting lang cookie to UK');
+});
+
+Ellipsis::route(array('COOKIE'=>array(
+	'lang'=>'')), function(){
+		// fetch lang value
+		Ellipsis::debug('Hello ' . $_COOKIE['lang']);
+});
+
+
+// METHOD examples
+
+// Test if the method is Get
+Ellipsis::route(array('METHOD'=>'GET'), function(){
+	echo "GETTING";
+});
+
+// Test if the method is Post
+Ellipsis::route(array('METHOD'=>'POST'), function(){
+	echo "POSTING";
+	Ellipsis::debug('Posted values: ' . $_POST['lang'] . ' language detected');
+});
+
+// URI examples
+
 // re-route a URI
 Ellipsis::route('^\/greetings\.php$', '/hello.php');
 
@@ -72,7 +104,40 @@ Ellipsis::route('^\/admin\/[^\/]+\/test\.php$', function($params){
     exit;
 });
 
-// show some of the other routing variables
+// QUERY/GET and POST examples
+
+// Only grab the value of 'lang' from a query/get string
+Ellipsis::route(array('QUERY'=>array(
+	'lang'=>'.*')), function(){
+	Ellipsis::debug('Get values: ' . $_GET['lang'] . ' language detected');
+});
+
+// Check if a coupon code passed in is valid (add ?coupon)
+Ellipsis::route(array('GET'=>array(
+	'coupon'=>'.*')), function(){
+	Ellipsis::debug('Coupon ' . $_GET['coupon'] . ' submitted');
+	$coupons = array('1234567','AB346523','JUNESALE');
+	echo "Your coupon " . $_GET['coupon'];
+	echo in_array($_GET['coupon'],$coupons) ?  " is valid!" : " has expired!";	
+});
+
+// Only grab the value of 'cheeseburger' from a post value using a non-regex value holder (accepts all values, including empty)
+Ellipsis::route(array('POST'=>array(
+	'cheeseburger'=>'')), function(){
+	Ellipsis::debug($_POST['cheeseburger'] . ' cheeseburger detected');
+});
+
+// Grab only empty values of 'lang' from a get submission
+Ellipsis::route(array('GET'=>array(
+	'lang'=>'^\s*$')), function(){
+	Ellipsis::debug('No language value set from GET, get from cookie or post');
+});
+
+//TODO:SERVER examples
+
+//TODO:ENV examples
+
+//TODO:combination example
 
 
 // set meta model variables
