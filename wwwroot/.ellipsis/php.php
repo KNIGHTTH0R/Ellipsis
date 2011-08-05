@@ -16,11 +16,13 @@
 function __autoload($class_name){
     if (preg_match('/^[a-z]+$/i', $class_name)){
         // first try to load from the application library
-        if (is_dir($_ENV['APP_LIB'])){
-            $path = $_ENV['APP_LIB'] . '/' . strtolower($class_name) . '.php';
-            if (is_file($path)){
-                require $path;
-                return;
+        foreach($_ENV['APPS'] as $name => $app){
+            if (is_dir($app['lib'])){
+                $path = $app['lib'] . '/' . strtolower($class_name) . '.php';
+                if (is_file($path)){
+                    require $path;
+                    return;
+                }
             }
         }
 
@@ -207,7 +209,7 @@ function pluralize($noun){
  *
  * @param string $directory
  * @param string $format (absolute|relative)
- * @param array $excludes
+ * @param array $excludes ('*' is wild)
  * @return array
  */
 function scandir_recursive($directory, $format = 'absolute', $excludes = null){
@@ -239,7 +241,9 @@ function scandir_recursive($directory, $format = 'absolute', $excludes = null){
         foreach($paths as $path){
             $remove = false;
             foreach($excludes as $exclude){
-                if (preg_match('/' . preg_quote($exclude, '/') . '/', $path)){
+                $exclude = preg_quote($exclude, '/');
+                $exclude = str_replace('\*', '.*', $exclude);
+                if (preg_match('/' . $exclude . '/', $path)){
                     $remove = true;
                 }
             }
