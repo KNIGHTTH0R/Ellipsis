@@ -11,18 +11,10 @@
  * @package ellipsis
  */
 
-require_once __DIR__ . '/ellipsis.php';
-
-/**
- * set some preferred system defaults
- */
-date_default_timezone_set('America/New_York');
 
 /**
  * default route/cache instructions
  */
-
-// prevent access to known private locations
 Ellipsis::route('^\/config\.php$', function(){
     Ellipsis::fail(404);
 }, 31536000);
@@ -37,8 +29,7 @@ Ellipsis::route('^\/info\.php$', function(){
     return false;
 }, 3600);
 
-// run application
-// note: app/config.php gets prepended to run() if present
-Ellipsis::run();
+// cache the favorite icon
+//Ellipsis::route('^\/favicon\.ico$/', '/favicon.ico', 31536000);
 
 ?>
