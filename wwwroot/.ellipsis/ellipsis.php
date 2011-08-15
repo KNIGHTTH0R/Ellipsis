@@ -191,7 +191,7 @@ class Ellipsis {
         // cache output if being saved
         if ($_ENV['CACHE_TIME'] > 0){
             // define the file pair
-            $output_file    = $_SERVER['DOCUMENT_ROOT'] . $_SERVER['REQUEST_URI'];
+            $output_file    = $_SERVER['DOCUMENT_ROOT'] . $_SERVER['PATH_INFO'];
             $cache_time     = time() + $_ENV['CACHE_TIME'];
             $cache_file     = $output_file . '.' . $cache_time;
 
@@ -252,7 +252,7 @@ class Ellipsis {
                         break;
                     case 'URI':
                         // match a specific URI pattern
-                        if (preg_match('/' . $condition . '/U', $_SERVER['REQUEST_URI'], $matches)){
+                        if (preg_match('/' . $condition . '/U', $_SERVER['PATH_INFO'], $matches)){
                             if (count($matches) > 1){
                                 // capture backreferences by index and name
                                 array_shift($matches);
@@ -499,9 +499,9 @@ class Ellipsis {
     function debug($message, $data = undefined){
         if ($_ENV['DEBUG']){
             if ($data != undefined){
-                ChromePhp::log("{$_SERVER['REQUEST_URI']}: {$message}", $data);
+                ChromePhp::log("{$_SERVER['PATH_INFO']}: {$message}", $data);
             } else {
-                ChromePhp::log("{$_SERVER['REQUEST_URI']}: {$message}");
+                ChromePhp::log("{$_SERVER['PATH_INFO']}: {$message}");
             }
         }
     }
