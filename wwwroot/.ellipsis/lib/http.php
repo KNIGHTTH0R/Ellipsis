@@ -21,19 +21,32 @@ class HTTP {
     /**
      * construct a new HTTP object
      *
-     * @param void
+     * @param array $curloptions
      * @return void
      */
-    public function __construct(){
+    public function __construct($curloptions=null){
+
+        // set default curl options
         $this->options = array(
-            CURLOPT_SSL_VERIFYPEER  => true,
+            CURLOPT_SSL_VERIFYPEER  => 1,
             CURLOPT_CAINFO          => realpath(dirname(__FILE__) . '/curl.crt.pem'),
+            CURLOPT_ENCODING        => 'gzip,deflate,sdch',
             CURLOPT_FOLLOWLOCATION  => 0,
             CURLOPT_MAXREDIRS       => 5,
             CURLOPT_HEADER          => 1,
             CURLOPT_RETURNTRANSFER  => 1,
-            CURLOPT_USERAGENT       => 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.1.2) Gecko/20090729 Firefox/3.5.2 DCP/3.0',
+            CURLOPT_USERAGENT       => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_7) AppleWebKit/535.1 (KHTML, like Gecko) Chrome/13.0.782.112 Safari/535.1',
             CURLOPT_VERBOSE         => 0
+        );
+        if (is_array($curloptions)){
+            $this->options = array_extend($this->options, $curloptions);
+        }
+
+        // set default curl http headers
+        $this->headers = array(
+            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language: en-US,en;q=0.8',
+            'Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.3'
         );
     }
 
@@ -43,11 +56,23 @@ class HTTP {
      * @param string $uri
      * @param array $headers
      * @param array $cookies
+     * @param string $proxy (i.e. 127.0.0.1:8888)
      * @return object
      */
-    public static function get($uri, $headers=null, $cookies=null){
+    public static function get($uri, $headers=null, $cookies=null, $proxy=null){
+        $options = null;
+
+        // build proxy (if applicable)
+        if ($proxy != null && preg_match('/^([^:]+):(.*)$/', $proxy, $matches)){
+            $options = array(
+                CURLOPT_PROXY           => $matches[1],
+                CURLOPT_PROXYPORT       => $matches[2],
+                CURLOPT_SSL_VERIFYPEER  => 0
+            );
+        }
+
         // create a request object
-        $request = new self();
+        $request = new self($options);
 
         // get a response object
         return $request->exec($uri, 'GET', null, $headers, $cookies, null);
@@ -60,11 +85,23 @@ class HTTP {
      * @param array $data
      * @param array $headers
      * @param array $cookies
+     * @param string $proxy (i.e. 127.0.0.1:8888)
      * @return object
      */
-    public static function post($uri, $data=null, $headers=null, $cookies=null){
+    public static function post($uri, $data=null, $headers=null, $cookies=null, $proxy=null){
+        $options = null;
+
+        // build proxy (if applicable)
+        if ($proxy != null && preg_match('/^([^:]+):(.*)$/', $proxy, $matches)){
+            $options = array(
+                CURLOPT_PROXY           => $matches[1],
+                CURLOPT_PROXYPORT       => $matches[2],
+                CURLOPT_SSL_VERIFYPEER  => false
+            );
+        }
+
         // create a request object
-        $request = new self();
+        $request = new self($options);
 
         // get a response object
         return $request->exec($uri, 'POST', $data, $headers, $cookies, null);
@@ -88,12 +125,14 @@ class HTTP {
 
         // fashion a response object
         $response = (object) array(
-            'uri'     => null,
-            'status'  => null,
-            'cookies' => null,
-            'options' => null,
-            'headers' => null,
-            'body'    => null
+            'uri'       => null,
+            'method'    => null,
+            'data'      => null,
+            'status'    => null,
+            'cookies'   => null,
+            'options'   => null,
+            'headers'   => null,
+            'body'      => null
         );
 
         // get handle on curl :)
@@ -102,26 +141,25 @@ class HTTP {
         try {
             // curl options
             if (!empty($options)) $this->options = array_extend($this->options, $options);
-            curl_setopt_array($this->handle, $this->options);
+            if (!empty($this->options)) curl_setopt_array($this->handle, $this->options);
 
             // curl headers
-            if (!empty($headers)) $this->headers = array_extend($this->headers, $headers);
-            curl_setopt($this->handle, CURLOPT_HTTPHEADER, $this->headers);
+            if (!empty($headers)) $this->headers = array_merge($this->headers, $headers);
+            if (!empty($this->headers)) curl_setopt($this->handle, CURLOPT_HTTPHEADER, $this->headers);
 
             // curl cookies
             if (!empty($cookies)) $this->cookies = array_extend($this->cookies, $cookies);
-            curl_setopt($this->handle, CURLOPT_COOKIE, $this->serializeCookies($this->cookies));
+            if (!empty($this->cookies)) curl_setopt($this->handle, CURLOPT_COOKIE, $this->serializeCookies($this->cookies));
 
             // set post data
             if ($this->method == 'POST' && !empty($data)){
                 curl_setopt($this->handle, CURLOPT_POST, true);
-                $query = '';
-                if(is_associative_array($data)){
-                    foreach($data as $k=>$v) $query .= $k.'='.$v.'&';
+
+                if (is_associative_array($data)){
+                    curl_setopt($this->handle, CURLOPT_POSTFIELDS, http_build_query($data, '', '&'));
                 } else {
-                    $query = $data;
+                    curl_setopt($this->handle, CURLOPT_POSTFIELDS, $data);
                 }
-                curl_setopt($this->handle, CURLOPT_POSTFIELDS, substr($query, 0, -1));
             }
 
             // execute the request
@@ -177,6 +215,8 @@ class HTTP {
 
             // set response data to the response object
             $response->uri      = $location;
+            $response->method   = $method;
+            $response->data     = $data;
             $response->status   = $status;
             $response->cookies  = $this->deserializeCookies($cookies);
             $response->headers  = $this->deserializeHeaders($header);
