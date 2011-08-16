@@ -71,6 +71,25 @@ function array_extend($array, $array2){
 }
 
 /**
+ * checks if a regexp exists in an array
+ *
+ * @param string $regexp
+ * @param array $haystack
+ * @return boolean
+ */
+function preg_array($regexp, $haystack){
+    // extract each recursive value
+    $values = array();
+    array_walk_recursive($haystack, create_function('$val, $key, $obj', 'array_push($obj, $val);'), $values);
+    foreach($values as $value){
+        if (preg_match($regexp, $value)){
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
  * inflection exceptions
  * note: sourced from Akelos
  */
