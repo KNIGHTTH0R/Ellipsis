@@ -376,4 +376,33 @@ function touch_recursive($path){
     return touch($path);
 }
 
+/**
+ * convert ascii to hexadecimal
+ *
+ * @param string $ascii
+ * @return string
+ */
+function asciihex($ascii){
+    $length = strlen($ascii);
+    $hex = '';
+    for ($i = 0; $i < $length; $i++){
+        $hex .= sprintf("%02x", ord(substr($ascii, $i, 1)));
+    }
+    return $hex;
+}
+
+/**
+ * convert hexadecimal to ascii
+ *
+ * @param string $hex
+ * @return string
+ */
+function hexascii($hex){
+    $length = strlen($hex);
+    $ascii = '';
+    for ($i = 0; $i < $length; $i+=2){
+        $ascii .= chr(hexdec(substr($hex, $i, 2)));
+    }
+    return $ascii;
+}
 
