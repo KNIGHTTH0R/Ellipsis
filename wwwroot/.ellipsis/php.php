@@ -17,8 +17,8 @@ function __autoload($class_name){
     if (preg_match('/^[a-z]+$/i', $class_name)){
         // first try to load from the application library
         foreach($_ENV['APPS'] as $name => $app){
-            if (is_dir($app['lib'])){
-                $path = $app['lib'] . '/' . strtolower($class_name) . '.php';
+            if (is_dir($app['SCRIPT_LIB'])){
+                $path = $app['SCRIPT_LIB'] . '/' . strtolower($class_name) . '.php';
                 if (is_file($path)){
                     require $path;
                     return;
