@@ -39,9 +39,7 @@ class Mysql {
     }
 
     /**
-     * sanitize sql query for execution (null if cannot sanitize)
-     *
-     * @todo: need to account for escaped quotes
+     * sanitize sql query for execution (null if cannot be safely sanitized)
      *
      * @param string $sql
      * @return string|null
@@ -57,7 +55,7 @@ class Mysql {
         }
 
         // hex encode any passed values
-        $sql = preg_replace('/(`*\w[\w\d_-]+`*)\s*=\s*([\'"])([^\2]+)\2/e', "'\\1='.'0x'.asciihex('\\3')", $sql);
+        $sql = preg_replace('/(`*\w[\w\d_-]+`*)\s*=\s*([\'"])([^\2\\\\]*(?:\\\\.[^\2\\\\]*)*)\2/e', "'\\1='.'0x'.asciihex('\\3')", $sql);
         return $sql;
     }
 
