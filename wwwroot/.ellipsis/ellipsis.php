@@ -230,8 +230,8 @@ class Ellipsis {
             if (is_file("{$_SERVER['DOCUMENT_ROOT']}/.{$app}/config.php")){
                 $_ENV['CURRENT'] = $app;
                 $_ENV['APPS'][$app] = array(
-                    'root'  => "{$_SERVER['DOCUMENT_ROOT']}/.{$app}",
-                    'lib'   => "{$_SERVER['DOCUMENT_ROOT']}/.{$app}/lib"
+                    'SCRIPT_ROOT'  => "{$_SERVER['DOCUMENT_ROOT']}/.{$app}",
+                    'SCRIPT_LIB'   => "{$_SERVER['DOCUMENT_ROOT']}/.{$app}/lib"
                 );
                 include "{$_SERVER['DOCUMENT_ROOT']}/.{$app}/config.php";
             }
@@ -373,7 +373,7 @@ class Ellipsis {
         }
 
         // process source files
-        $source_paths = scandir_recursive($_ENV['APPS'][$_ENV['CURRENT']]['root'], 'relative');
+        $source_paths = scandir_recursive($_ENV['APPS'][$_ENV['CURRENT']]['SCRIPT_ROOT'], 'relative');
         foreach($source_paths as $path){
             if ($_SERVER['PATH_INFO'] == $path){
                 $_ENV['CACHE_TIME'] = $route['cache'];
@@ -442,12 +442,12 @@ class Ellipsis {
         header("Content-Type: $mime_type");
 
         // load appropriate resource
-        if (is_file($_ENV['APPS'][$_ENV['CURRENT']]['root'] . $path)){
+        if (is_file($_ENV['APPS'][$_ENV['CURRENT']]['SCRIPT_ROOT'] . $path)){
             if (preg_match('/\.php$/', $path)){
-                include $_ENV['APPS'][$_ENV['CURRENT']]['root'] . $path;
+                include $_ENV['APPS'][$_ENV['CURRENT']]['SCRIPT_ROOT'] . $path;
             } else {
-                $fp = fopen($_ENV['APPS'][$_ENV['CURRENT']]['root'] . $path, 'rb');
-                header("Content-Length: " . filesize($_ENV['APPS'][$_ENV['CURRENT']]['root'] . $path));
+                $fp = fopen($_ENV['APPS'][$_ENV['CURRENT']]['SCRIPT_ROOT'] . $path, 'rb');
+                header("Content-Length: " . filesize($_ENV['APPS'][$_ENV['CURRENT']]['SCRIPT_ROOT'] . $path));
                 fpassthru($fp);
             }
         } else {
@@ -469,12 +469,12 @@ class Ellipsis {
         if (isset($_ENV['HTTP_CODE'][$code])){
             self::debug("{$code} - {$message}", $_ENV['HTTP_CODE'][$code]);
             if (isset($_ENV['HTTP_CODE'][$code]['path'])){
-                if (is_file($_ENV['APPS'][$_ENV['CURRENT']]['root'] . '/' . $_ENV['HTTP_CODE'][$code]['path'])){
+                if (is_file($_ENV['APPS'][$_ENV['CURRENT']]['SCRIPT_ROOT'] . '/' . $_ENV['HTTP_CODE'][$code]['path'])){
                     $PARAMS['ERROR_CODE'] = $code;
                     $PARAMS['ERROR_TITLE'] = $_ENV['HTTP_CODE'][$code]['title'];
                     $PARAMS['ERROR_DESCRIPTION'] = $_ENV['HTTP_CODE'][$code]['description'];
                     $PARAMS['ERROR_TRANSLATION'] = $_ENV['HTTP_CODE'][$code]['translation'];
-                    include $_ENV['APPS'][$_ENV['CURRENT']]['root'] . '/' . $_ENV['HTTP_CODE'][$code]['path'];
+                    include $_ENV['APPS'][$_ENV['CURRENT']]['SCRIPT_ROOT'] . '/' . $_ENV['HTTP_CODE'][$code]['path'];
                     exit;
                 }
             } else {

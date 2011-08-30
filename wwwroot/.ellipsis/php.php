@@ -17,8 +17,8 @@ function ellipsis_autoload($class_name){
     if (preg_match('/^[a-z]+$/i', $class_name)){
         // first try to load from the application library
         foreach($_ENV['APPS'] as $name => $app){
-            if (is_dir($app['lib'])){
-                $path = $app['lib'] . '/' . strtolower($class_name) . '.php';
+            if (is_dir($app['SCRIPT_LIB'])){
+                $path = $app['SCRIPT_LIB'] . '/' . strtolower($class_name) . '.php';
                 if (is_file($path)){
                     require $path;
                     return;
@@ -397,4 +397,33 @@ function touch_recursive($path){
     return touch($path);
 }
 
+/**
+ * convert ascii to hexadecimal
+ *
+ * @param string $ascii
+ * @return string
+ */
+function asciihex($ascii){
+    $length = strlen($ascii);
+    $hex = '';
+    for ($i = 0; $i < $length; $i++){
+        $hex .= sprintf("%02x", ord(substr($ascii, $i, 1)));
+    }
+    return $hex;
+}
+
+/**
+ * convert hexadecimal to ascii
+ *
+ * @param string $hex
+ * @return string
+ */
+function hexascii($hex){
+    $length = strlen($hex);
+    $ascii = '';
+    for ($i = 0; $i < $length; $i+=2){
+        $ascii .= chr(hexdec(substr($hex, $i, 2)));
+    }
+    return $ascii;
+}
 
