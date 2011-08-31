@@ -38,7 +38,10 @@ Installation Instructions
 
 Documentation
 --------------------------------------------------------------------------------
-@todo: refer to documentation file
+README.md - this file
+UNITTEST-README.md - how to run unit tests
+@TODO: update https://github.com/tobius/Ellipsis/wiki
+@TODO: create api documentation using phpdoc
 
 Known Problems
 --------------------------------------------------------------------------------
