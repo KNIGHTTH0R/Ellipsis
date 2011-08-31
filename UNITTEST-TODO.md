@@ -8,7 +8,7 @@ UNIT TEST TODO
     * asciihex()
     * hexascii()
 * image.php
-    * resize()
+    * all functions
 * mysql.php
     * all functions
 * repository.php 
