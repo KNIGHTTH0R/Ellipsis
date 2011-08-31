@@ -18,28 +18,33 @@ please use at your own risk.
 
 Required Software
 --------------------------------------------------------------------------------
-PHP 5.3 or higher
-Apache 2.x
+* PHP 5.3 or higher
+* Apache 2.x
 
 Optional Software
 --------------------------------------------------------------------------------
-MySQL 5.x or higher (required by MySQL module && Repository module)
-ChromePHP Browser Extension (useful for Ellipsis::debug)
-FirePHP Browser Extension (useful for Ellipsis::debug)
-cURL 7.21.x (required by HTTP module)
+* MySQL 5.x or higher (required by MySQL module && Repository module)
+* ChromePHP Browser Extension (useful for Ellipsis::debug)
+* FirePHP Browser Extension (useful for Ellipsis::debug)
+* cURL 7.21.x (required by HTTP module)
 
 Installation Instructions
 --------------------------------------------------------------------------------
 @todo: provide git instructions
+
 @todo: provide download/extract instructions
+
 @todo: detail permissions instructions
+
 @todo: detail security considerations (i.e. hiding ...)
 
 Documentation
 --------------------------------------------------------------------------------
-README.md - this file
-UNITTEST-README.md - how to run unit tests
+* README.md - this file
+* UNITTEST-README.md - how to run unit tests
+
 @TODO: update https://github.com/tobius/Ellipsis/wiki
+
 @TODO: create api documentation using phpdoc
 
 Known Problems
