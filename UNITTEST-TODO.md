@@ -14,4 +14,4 @@ UNIT TEST TODO
 * repository.php 
     * all functions
 * tests.php
-    * :) no.
+    * :) no. This is the unit test bootstrap.
