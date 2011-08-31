@@ -1,4 +1,3 @@
-
 Ellipsis - Version 0.1
 ================================================================================
 Written by [Toby Miller](tobius.miller@gmail.com)
