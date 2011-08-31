@@ -1,4 +1,3 @@
-
 UNIT TEST TODO
 ================================================================================
 
@@ -6,6 +5,8 @@ UNIT TEST TODO
     * all functions
 * php.php 
     * touch_recursive()
+    * asciihex()
+    * hexascii()
 * image.php
     * resize()
 * mysql.php
