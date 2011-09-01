@@ -1,21 +1,17 @@
-
 UNIT TEST TODO
 ================================================================================
 
-- Routes Expect
-  - route routes
-  - route errors
-- Cache Expect 
-  - page caches
-  - page cache expires
-  - page does not cache
-- Http calls Expect
-  - url is loaded
-  - url load errors
-- Http sessions Expect
-  - session is maintained
-  - session is not maintained
-- Http cookies Expect
-  - cookie is written
-  - cookie is written on redirect
-  - cookie is expired
+* ellipsis.php 
+    * all functions
+* php.php 
+    * touch_recursive()
+    * asciihex()
+    * hexascii()
+* image.php
+    * all functions
+* mysql.php
+    * all functions
+* repository.php 
+    * all functions
+* tests.php
+    * :) no. This is the unit test bootstrap.

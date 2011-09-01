@@ -13,7 +13,7 @@
  * @param string $class_name
  * @return void
  */
-function __autoload($class_name){
+function ellipsis_autoload($class_name){
     if (preg_match('/^[a-z]+$/i', $class_name)){
         // first try to load from the application library
         foreach($_ENV['APPS'] as $name => $app){
@@ -33,6 +33,9 @@ function __autoload($class_name){
         }
     }
 }
+
+// courteous autoload
+spl_autoload_register('ellipsis_autoload');
 
 /**
  * determine if passed array is an associative array or not
@@ -80,7 +83,7 @@ function array_extend($array, $array2){
 function preg_array($regexp, $haystack){
     // extract each recursive value
     $values = array();
-    array_walk_recursive($haystack, create_function('$val, $key, $obj', 'array_push($obj, $val);'), $values);
+    array_walk_recursive($haystack, create_function('$val, $key, $obj', 'array_push($obj, $val);'), &$values);
     foreach($values as $value){
         if (preg_match($regexp, $value)){
             return true;
@@ -276,7 +279,7 @@ function scandir_recursive($directory, $format = 'absolute', $excludes = null){
 /**
  * mime types
  */
-$mime_types = array(
+$_ENV['MIME_TYPES'] = array(
     'ascii' => array(
         'js'    => 'application/x-javascript',
         'css'   => 'text/css',
@@ -324,17 +327,34 @@ $mime_types = array(
 );
 
 /**
+ * get the file extension for a particular resource
+ * 
+ * @param string $path
+ * @return string|null
+ * 
+ */
+function getextension($path)
+{
+	$extension = null;
+    if (preg_match('/\.([a-z0-9]+)$/', $path, $found)){
+		$extension = $found[1];
+	}
+	return $extension;
+}
+
+/**
  * get the file type for a particular resource
  *
  * @param string $path
  * @return string|null
  */
 function getfiletype($path){
-    if (preg_match('/\.[a-z0-9]+$/', $path)){
-        $extension = preg_replace('/\.([a-z0-9]+)$/', '$1', $path);
-        if (isset($mime_types['binary'][$extension])){
+	$extension = getextension($path);
+	if($extension!=null)
+	{
+        if (isset($_ENV['MIME_TYPES']['binary'][$extension])){
             return 'binary';
-        } else if (isset($mime_types['ascii'][$extension])){
+        } else if (isset($_ENV['MIME_TYPES']['ascii'][$extension])){
             return 'ascii';
         }
     }
@@ -348,9 +368,10 @@ function getfiletype($path){
  * @return string
  */
 function getmimetype($path){
+	$extension = getextension($path);
     $filetype = getfiletype($path);
     if ($filetype != null){
-        return $mime_types[$filetype][$extension];
+        return $_ENV['MIME_TYPES'][$filetype][$extension];
     } else {
         return 'text/plain';
     }
@@ -363,8 +384,8 @@ function getmimetype($path){
  * @return boolean
  */
 function touch_recursive($path){
-    if (!preg_match('/^' . preg_quote($_ENV['DOCUMENT_ROOT'], '/') . '/', $path)){
-        // for saftey sake
+    if (!preg_match('/^' . preg_quote($_SERVER['DOCUMENT_ROOT'], '/') . '/', $path)){
+        // for safety's sake
         return false;
     }
 
