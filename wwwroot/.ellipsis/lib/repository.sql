@@ -39,7 +39,7 @@ ENGINE = InnoDB;
 -- -----------------------------------------------------
 -- Function INIT_UUID(UUID)
 -- -----------------------------------------------------
-delimiter $$
+delimiter ~
 CREATE FUNCTION INIT_UUID(uuid CHAR(32))
 RETURNS CHAR(32)
 DETERMINISTIC
@@ -50,13 +50,14 @@ BEGIN
         SET result = UUID();
     END IF;
     RETURN result;
-END$$
+END~
+delimiter ;
 
 
 -- -----------------------------------------------------
 -- Function NEW_VERSION()
 -- -----------------------------------------------------
-delimiter $$
+delimiter ~
 CREATE FUNCTION NEW_VERSION()
 RETURNS INT
 DETERMINISTIC
@@ -65,7 +66,8 @@ BEGIN
     INSERT INTO t_version (created) VALUES (NOW());
     SET result = LAST_INSERT_ID();
     RETURN result;
-END$$
+END~
+delimiter ;
 
 
 -- -----------------------------------------------------
@@ -86,21 +88,21 @@ CREATE TABLE IF NOT EXISTS t_model (
   PRIMARY KEY (id),
   INDEX fk_model_version (version_id ASC),
   CONSTRAINT fk_model_version
-    FOREIGN KEY (version_id )
-    REFERENCES t_version (id )
+    FOREIGN KEY (version_id)
+    REFERENCES t_version (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 DROP TRIGGER IF EXISTS tr_before_model_insert;
 
-delimiter $$
+delimiter ~
 CREATE TRIGGER tr_before_model_insert BEFORE INSERT ON t_model
 FOR EACH ROW 
     BEGIN
         SET NEW.version_id = NEW_VERSION();
         SET NEW.uuid = INIT_UUID(NEW.uuid);
-    END$$
+    END~
 delimiter ;
 
 -- -----------------------------------------------------
@@ -111,7 +113,7 @@ delimiter ;
 -- -----------------------------------------------------
 DROP TABLE IF EXISTS t_instance;
 
-CREATE  TABLE IF NOT EXISTS t_instance (
+CREATE TABLE IF NOT EXISTS t_instance (
   id INT NOT NULL AUTO_INCREMENT,
   uuid CHAR(32) NOT NULL,
   model_id INT NOT NULL,
@@ -120,26 +122,26 @@ CREATE  TABLE IF NOT EXISTS t_instance (
   INDEX fk_instance_version (version_id ASC),
   INDEX fk_instance_model (model_id ASC),
   CONSTRAINT fk_instance_version
-    FOREIGN KEY (version_id )
-    REFERENCES t_version (id )
+    FOREIGN KEY (version_id)
+    REFERENCES t_version (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_instance_model
-    FOREIGN KEY (model_id )
-    REFERENCES t_model (id )
+    FOREIGN KEY (model_id)
+    REFERENCES t_model (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 DROP TRIGGER IF EXISTS tr_before_instance_insert;
 
-delimiter $$
+delimiter ~
 CREATE TRIGGER tr_before_instance_insert BEFORE INSERT ON t_instance
 FOR EACH ROW 
     BEGIN
         SET NEW.version_id = NEW_VERSION();
         SET NEW.uuid = INIT_UUID(NEW.uuid);
-    END$$
+    END~
 delimiter ;
 
 
@@ -152,9 +154,9 @@ delimiter ;
 -- application module properties (i.e. properties in a
 -- class object).
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS t_property ;
+DROP TABLE IF EXISTS t_property;
 
-CREATE  TABLE IF NOT EXISTS t_property (
+CREATE TABLE IF NOT EXISTS t_property (
   id INT NOT NULL AUTO_INCREMENT,
   uuid CHAR(32) NOT NULL,
   name VARCHAR(45) NOT NULL,
@@ -169,31 +171,31 @@ CREATE  TABLE IF NOT EXISTS t_property (
   INDEX fk_property_version (version_id ASC),
   INDEX fk_property_model (model_id ASC),
   CONSTRAINT fk_property_instance_model
-    FOREIGN KEY (instance_model_id )
-    REFERENCES t_model (id )
+    FOREIGN KEY (instance_model_id)
+    REFERENCES t_model (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_property_model
-    FOREIGN KEY (model_id )
-    REFERENCES t_model (id )
+    FOREIGN KEY (model_id)
+    REFERENCES t_model (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_property_version
-    FOREIGN KEY (version_id )
-    REFERENCES t_version (id )
+    FOREIGN KEY (version_id)
+    REFERENCES t_version (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 DROP TRIGGER IF EXISTS tr_before_property_insert;
 
-delimiter $$
+delimiter ~
 CREATE TRIGGER tr_before_property_insert BEFORE INSERT ON t_property
 FOR EACH ROW 
     BEGIN
         SET NEW.version_id = NEW_VERSION();
         SET NEW.uuid = INIT_UUID(NEW.uuid);
-    END$$
+    END~
 delimiter ;
 
 
@@ -203,9 +205,9 @@ delimiter ;
 -- These records represent property values that exist as
 -- a list of values rather than as an individual value.
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS t_list ;
+DROP TABLE IF EXISTS t_list;
 
-CREATE  TABLE IF NOT EXISTS t_list (
+CREATE TABLE IF NOT EXISTS t_list (
   id INT NOT NULL AUTO_INCREMENT,
   uuid CHAR(32) NOT NULL,
   property_id INT NOT NULL,
@@ -216,31 +218,31 @@ CREATE  TABLE IF NOT EXISTS t_list (
   INDEX fk_list_instance (instance_id ASC),
   INDEX fk_list_version (version_id ASC),
   CONSTRAINT fk_list_property
-    FOREIGN KEY (property_id )
-    REFERENCES t_property (id )
+    FOREIGN KEY (property_id)
+    REFERENCES t_property (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_list_instance
-    FOREIGN KEY (instance_id )
-    REFERENCES t_instance (id )
+    FOREIGN KEY (instance_id)
+    REFERENCES t_instance (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_list_version
-    FOREIGN KEY (version_id )
-    REFERENCES t_version (id )
+    FOREIGN KEY (version_id)
+    REFERENCES t_version (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 DROP TRIGGER IF EXISTS tr_before_list_insert;
 
-delimiter $$
+delimiter ~
 CREATE TRIGGER tr_before_list_insert BEFORE INSERT ON t_list
 FOR EACH ROW 
     BEGIN
         SET NEW.version_id = NEW_VERSION();
         SET NEW.uuid = INIT_UUID(NEW.uuid);
-    END$$
+    END~
 delimiter ;
 
 
@@ -250,9 +252,9 @@ delimiter ;
 -- These records represent all property values of the
 -- "boolean" field type.
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS t_boolean_value ;
+DROP TABLE IF EXISTS t_boolean_value;
 
-CREATE  TABLE IF NOT EXISTS t_boolean_value (
+CREATE TABLE IF NOT EXISTS t_boolean_value (
   id INT NOT NULL AUTO_INCREMENT,
   uuid CHAR(32) NOT NULL,
   value BIT(1) NOT NULL,
@@ -266,36 +268,36 @@ CREATE  TABLE IF NOT EXISTS t_boolean_value (
   INDEX fk_boolean_value_instance (instance_id ASC),
   INDEX fk_boolean_value_version (version_id ASC),
   CONSTRAINT fk_boolean_value_property
-    FOREIGN KEY (property_id )
-    REFERENCES t_property (id )
+    FOREIGN KEY (property_id)
+    REFERENCES t_property (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_boolean_value_list
-    FOREIGN KEY (list_id )
-    REFERENCES t_list (id )
+    FOREIGN KEY (list_id)
+    REFERENCES t_list (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_boolean_value_instance
-    FOREIGN KEY (instance_id )
-    REFERENCES t_instance (id )
+    FOREIGN KEY (instance_id)
+    REFERENCES t_instance (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_boolean_value_version
-    FOREIGN KEY (version_id )
-    REFERENCES t_version (id )
+    FOREIGN KEY (version_id)
+    REFERENCES t_version (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 DROP TRIGGER IF EXISTS tr_before_boolean_value_insert;
 
-delimiter $$
+delimiter ~
 CREATE TRIGGER tr_before_boolean_value_insert BEFORE INSERT ON t_boolean_value
 FOR EACH ROW 
     BEGIN
         SET NEW.version_id = NEW_VERSION();
         SET NEW.uuid = INIT_UUID(NEW.uuid);
-    END$$
+    END~
 delimiter ;
 
 
@@ -305,9 +307,9 @@ delimiter ;
 -- These records represent all property values of the
 -- "integer" field type.
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS t_integer_value ;
+DROP TABLE IF EXISTS t_integer_value;
 
-CREATE  TABLE IF NOT EXISTS t_integer_value (
+CREATE TABLE IF NOT EXISTS t_integer_value (
   id INT NOT NULL,
   uuid CHAR(32) NOT NULL,
   value INT NOT NULL DEFAULT 0,
@@ -321,36 +323,36 @@ CREATE  TABLE IF NOT EXISTS t_integer_value (
   INDEX fk_integer_value_instance (instance_id ASC),
   INDEX fk_integer_value_version (version_id ASC),
   CONSTRAINT fk_integer_value_property
-    FOREIGN KEY (property_id )
-    REFERENCES t_property (id )
+    FOREIGN KEY (property_id)
+    REFERENCES t_property (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_integer_value_list
-    FOREIGN KEY (list_id )
-    REFERENCES t_list (id )
+    FOREIGN KEY (list_id)
+    REFERENCES t_list (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_integer_value_instance
-    FOREIGN KEY (instance_id )
-    REFERENCES t_instance (id )
+    FOREIGN KEY (instance_id)
+    REFERENCES t_instance (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_integer_value_version
-    FOREIGN KEY (version_id )
-    REFERENCES t_version (id )
+    FOREIGN KEY (version_id)
+    REFERENCES t_version (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 DROP TRIGGER IF EXISTS tr_before_integer_value_insert;
 
-delimiter $$
+delimiter ~
 CREATE TRIGGER tr_before_integer_value_insert BEFORE INSERT ON t_integer_value
 FOR EACH ROW 
     BEGIN
         SET NEW.version_id = NEW_VERSION();
         SET NEW.uuid = INIT_UUID(NEW.uuid);
-    END$$
+    END~
 delimiter ;
 
 -- -----------------------------------------------------
@@ -359,7 +361,7 @@ delimiter ;
 -- These records represent all property values of the
 -- "double" field type.
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS t_double_value ;
+DROP TABLE IF EXISTS t_double_value;
 
 CREATE TABLE IF NOT EXISTS t_double_value (
   id INT NOT NULL AUTO_INCREMENT,
@@ -375,36 +377,36 @@ CREATE TABLE IF NOT EXISTS t_double_value (
   INDEX fk_double_value_instance (instance_id ASC),
   INDEX fk_double_value_version (version_id ASC),
   CONSTRAINT fk_double_value_property
-    FOREIGN KEY (property_id )
-    REFERENCES t_property (id )
+    FOREIGN KEY (property_id)
+    REFERENCES t_property (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_double_value_list
-    FOREIGN KEY (list_id )
-    REFERENCES t_list (id )
+    FOREIGN KEY (list_id)
+    REFERENCES t_list (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_double_value_instance
-    FOREIGN KEY (instance_id )
-    REFERENCES t_instance (id )
+    FOREIGN KEY (instance_id)
+    REFERENCES t_instance (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_double_value_version
-    FOREIGN KEY (version_id )
-    REFERENCES t_version (id )
+    FOREIGN KEY (version_id)
+    REFERENCES t_version (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 DROP TRIGGER IF EXISTS tr_before_double_value_insert;
 
-delimiter $$
+delimiter ~
 CREATE TRIGGER tr_before_double_value_insert BEFORE INSERT ON t_double_value
 FOR EACH ROW 
     BEGIN
         SET NEW.version_id = NEW_VERSION();
         SET NEW.uuid = INIT_UUID(NEW.uuid);
-    END$$
+    END~
 delimiter ;
 
 
@@ -414,9 +416,9 @@ delimiter ;
 -- These records represent all property values of the
 -- "datetime" field type.
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS t_datetime_value ;
+DROP TABLE IF EXISTS t_datetime_value;
 
-CREATE  TABLE IF NOT EXISTS t_datetime_value (
+CREATE TABLE IF NOT EXISTS t_datetime_value (
   id INT NOT NULL AUTO_INCREMENT,
   uuid CHAR(32) NOT NULL,
   value DATETIME NULL,
@@ -430,36 +432,36 @@ CREATE  TABLE IF NOT EXISTS t_datetime_value (
   INDEX fk_datetime_value_instance (instance_id ASC),
   INDEX fk_datetime_value_version (version_id ASC),
   CONSTRAINT fk_datetime_value_property
-    FOREIGN KEY (property_id )
-    REFERENCES t_property (id )
+    FOREIGN KEY (property_id)
+    REFERENCES t_property (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_datetime_value_list
-    FOREIGN KEY (list_id )
-    REFERENCES t_list (id )
+    FOREIGN KEY (list_id)
+    REFERENCES t_list (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_datetime_value_instance
-    FOREIGN KEY (instance_id )
-    REFERENCES t_instance (id )
+    FOREIGN KEY (instance_id)
+    REFERENCES t_instance (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_datetime_value_version
-    FOREIGN KEY (version_id )
-    REFERENCES t_version (id )
+    FOREIGN KEY (version_id)
+    REFERENCES t_version (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 DROP TRIGGER IF EXISTS tr_before_datetime_value_insert;
 
-delimiter $$
+delimiter ~
 CREATE TRIGGER tr_before_datetime_value_insert BEFORE INSERT ON t_datetime_value
 FOR EACH ROW 
     BEGIN
         SET NEW.version_id = NEW_VERSION();
         SET NEW.uuid = INIT_UUID(NEW.uuid);
-    END$$
+    END~
 delimiter ;
 
 
@@ -469,9 +471,9 @@ delimiter ;
 -- These records represent all property values of the
 -- "binary" field type.
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS t_binary_value ;
+DROP TABLE IF EXISTS t_binary_value;
 
-CREATE  TABLE IF NOT EXISTS t_binary_value (
+CREATE TABLE IF NOT EXISTS t_binary_value (
   id INT NOT NULL AUTO_INCREMENT,
   uuid CHAR(32) NOT NULL,
   value LONGBLOB NULL,
@@ -485,36 +487,36 @@ CREATE  TABLE IF NOT EXISTS t_binary_value (
   INDEX fk_binary_value_instance (instance_id ASC),
   INDEX fk_binary_value_version (version_id ASC),
   CONSTRAINT fk_binary_value_property
-    FOREIGN KEY (property_id )
-    REFERENCES t_property (id )
+    FOREIGN KEY (property_id)
+    REFERENCES t_property (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_binary_value_list
-    FOREIGN KEY (list_id )
-    REFERENCES t_list (id )
+    FOREIGN KEY (list_id)
+    REFERENCES t_list (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_binary_value_instance
-    FOREIGN KEY (instance_id )
-    REFERENCES t_instance (id )
+    FOREIGN KEY (instance_id)
+    REFERENCES t_instance (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_binary_value_version
-    FOREIGN KEY (version_id )
-    REFERENCES t_version (id )
+    FOREIGN KEY (version_id)
+    REFERENCES t_version (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 DROP TRIGGER IF EXISTS tr_before_binary_value_insert;
 
-delimiter $$
+delimiter ~
 CREATE TRIGGER tr_before_binary_value_insert BEFORE INSERT ON .t_binary_value
 FOR EACH ROW 
     BEGIN
         SET NEW.version_id = NEW_VERSION();
         SET NEW.uuid = INIT_UUID(NEW.uuid);
-    END$$
+    END~
 delimiter ;
 
 
@@ -525,9 +527,9 @@ delimiter ;
 -- "ascii" field type measuring less than or equal to
 -- 1000 characters in length.
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS t_smalltext_value ;
+DROP TABLE IF EXISTS t_smalltext_value;
 
-CREATE  TABLE IF NOT EXISTS t_smalltext_value (
+CREATE TABLE IF NOT EXISTS t_smalltext_value (
   id INT NOT NULL AUTO_INCREMENT,
   uuid CHAR(32) NOT NULL,
   value VARCHAR(1000) NULL,
@@ -541,36 +543,36 @@ CREATE  TABLE IF NOT EXISTS t_smalltext_value (
   INDEX fk_smalltext_value_instance (instance_id ASC),
   INDEX fk_smalltext_value_version (version_id ASC),
   CONSTRAINT fk_smalltext_value_property
-    FOREIGN KEY (property_id )
-    REFERENCES t_property (id )
+    FOREIGN KEY (property_id)
+    REFERENCES t_property (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_smalltext_value_list
-    FOREIGN KEY (list_id )
-    REFERENCES t_list (id )
+    FOREIGN KEY (list_id)
+    REFERENCES t_list (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_smalltext_value_instance
-    FOREIGN KEY (instance_id )
-    REFERENCES t_instance (id )
+    FOREIGN KEY (instance_id)
+    REFERENCES t_instance (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_smalltext_value_version
-    FOREIGN KEY (version_id )
-    REFERENCES t_version (id )
+    FOREIGN KEY (version_id)
+    REFERENCES t_version (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 DROP TRIGGER IF EXISTS tr_before_smalltext_value_insert;
 
-delimiter $$
+delimiter ~
 CREATE TRIGGER tr_before_smalltext_value_insert BEFORE INSERT ON t_smalltext_value
 FOR EACH ROW 
     BEGIN
         SET NEW.version_id = NEW_VERSION();
         SET NEW.uuid = INIT_UUID(NEW.uuid);
-    END$$
+    END~
 delimiter ;
 
 
@@ -581,9 +583,9 @@ delimiter ;
 -- "ascii" field type measuring between 1001 and 4000
 -- characters in length.
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS t_mediumtext_value ;
+DROP TABLE IF EXISTS t_mediumtext_value;
 
-CREATE  TABLE IF NOT EXISTS t_mediumtext_value (
+CREATE TABLE IF NOT EXISTS t_mediumtext_value (
   id INT NOT NULL AUTO_INCREMENT,
   uuid CHAR(32) NOT NULL,
   value VARCHAR(4000) NULL,
@@ -597,36 +599,36 @@ CREATE  TABLE IF NOT EXISTS t_mediumtext_value (
   INDEX fk_mediumtext_value_instance (instance_id ASC),
   INDEX fk_mediumtext_value_version (version_id ASC),
   CONSTRAINT fk_mediumtext_value_property
-    FOREIGN KEY (property_id )
-    REFERENCES t_property (id )
+    FOREIGN KEY (property_id)
+    REFERENCES t_property (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_mediumtext_value_list
-    FOREIGN KEY (list_id )
-    REFERENCES t_list (id )
+    FOREIGN KEY (list_id)
+    REFERENCES t_list (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_mediumtext_value_instance
-    FOREIGN KEY (instance_id )
-    REFERENCES t_instance (id )
+    FOREIGN KEY (instance_id)
+    REFERENCES t_instance (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_mediumtext_value_version
-    FOREIGN KEY (version_id )
-    REFERENCES t_version (id )
+    FOREIGN KEY (version_id)
+    REFERENCES t_version (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 DROP TRIGGER IF EXISTS tr_before_mediumtext_value_insert;
 
-delimiter $$
+delimiter ~
 CREATE TRIGGER tr_before_mediumtext_value_insert BEFORE INSERT ON t_mediumtext_value
 FOR EACH ROW 
     BEGIN
         SET NEW.version_id = NEW_VERSION();
         SET NEW.uuid = INIT_UUID(NEW.uuid);
-    END$$
+    END~
 delimiter ;
 
 
@@ -637,9 +639,9 @@ delimiter ;
 -- "ascii" field type measuring greater than 4000 
 -- characters in length.
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS t_longtext_value ;
+DROP TABLE IF EXISTS t_longtext_value;
 
-CREATE  TABLE IF NOT EXISTS t_longtext_value (
+CREATE TABLE IF NOT EXISTS t_longtext_value (
   id INT NOT NULL AUTO_INCREMENT,
   uuid CHAR(32) NOT NULL,
   value LONGTEXT NULL,
@@ -653,36 +655,36 @@ CREATE  TABLE IF NOT EXISTS t_longtext_value (
   INDEX fk_longtext_value_instance (instance_id ASC),
   INDEX fk_longtext_value_version (version_id ASC),
   CONSTRAINT fk_longtext_value_property
-    FOREIGN KEY (property_id )
-    REFERENCES t_property (id )
+    FOREIGN KEY (property_id)
+    REFERENCES t_property (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_longtext_value_list
-    FOREIGN KEY (list_id )
-    REFERENCES t_list (id )
+    FOREIGN KEY (list_id)
+    REFERENCES t_list (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_longtext_value_instance
-    FOREIGN KEY (instance_id )
-    REFERENCES t_instance (id )
+    FOREIGN KEY (instance_id)
+    REFERENCES t_instance (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_longtext_value_version
-    FOREIGN KEY (version_id )
-    REFERENCES t_version (id )
+    FOREIGN KEY (version_id)
+    REFERENCES t_version (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 DROP TRIGGER IF EXISTS tr_before_longtext_value_insert;
 
-delimiter $$
+delimiter ~
 CREATE TRIGGER tr_before_longtext_value_insert BEFORE INSERT ON t_longtext_value
 FOR EACH ROW 
     BEGIN
         SET NEW.version_id = NEW_VERSION();
         SET NEW.uuid = INIT_UUID(NEW.uuid);
-    END$$
+    END~
 delimiter ;
 
 
@@ -694,9 +696,9 @@ delimiter ;
 -- because it replaces the requirement for one-to-many 
 -- data model associations.
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS t_instance_value ;
+DROP TABLE IF EXISTS t_instance_value;
 
-CREATE  TABLE IF NOT EXISTS t_instance_value (
+CREATE TABLE IF NOT EXISTS t_instance_value (
   id INT NOT NULL AUTO_INCREMENT,
   uuid CHAR(32) NOT NULL,
   value_instance_id INT NOT NULL,
@@ -711,41 +713,41 @@ CREATE  TABLE IF NOT EXISTS t_instance_value (
   INDEX fk_instance_value_instance (instance_id ASC),
   INDEX fk_instance_value_version (version_id ASC),
   CONSTRAINT fk_instance_value_value_instance
-    FOREIGN KEY (value_instance_id )
-    REFERENCES t_instance (id )
+    FOREIGN KEY (value_instance_id)
+    REFERENCES t_instance (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_instance_value_property
-    FOREIGN KEY (property_id )
-    REFERENCES t_property (id )
+    FOREIGN KEY (property_id)
+    REFERENCES t_property (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_instance_value_list
-    FOREIGN KEY (list_id )
-    REFERENCES t_list (id )
+    FOREIGN KEY (list_id)
+    REFERENCES t_list (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_instance_value_instance
-    FOREIGN KEY (instance_id )
-    REFERENCES t_instance (id )
+    FOREIGN KEY (instance_id)
+    REFERENCES t_instance (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT fk_instance_value_version
-    FOREIGN KEY (version_id )
-    REFERENCES t_version (id )
+    FOREIGN KEY (version_id)
+    REFERENCES t_version (id)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
 DROP TRIGGER IF EXISTS tr_before_instance_value_insert;
 
-delimiter $$
+delimiter ~
 CREATE TRIGGER tr_before_instance_value_insert BEFORE INSERT ON t_instance_value
 FOR EACH ROW 
     BEGIN
         SET NEW.version_id = NEW_VERSION();
         SET NEW.uuid = INIT_UUID(NEW.uuid);
-    END$$
+    END~
 delimiter ;
 
 
