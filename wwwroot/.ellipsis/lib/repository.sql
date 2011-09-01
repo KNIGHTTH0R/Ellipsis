@@ -40,11 +40,11 @@ ENGINE = InnoDB;
 -- Function INIT_UUID(UUID)
 -- -----------------------------------------------------
 delimiter ~
-CREATE FUNCTION INIT_UUID(uuid CHAR(32))
-RETURNS CHAR(32)
+CREATE FUNCTION INIT_UUID(uuid CHAR(36))
+RETURNS CHAR(36)
 DETERMINISTIC
 BEGIN
-    DECLARE result CHAR(32);
+    DECLARE result CHAR(36);
     SET result = uuid;
     IF uuid IS NULL OR uuid = '' THEN
         SET result = UUID();
@@ -62,7 +62,7 @@ CREATE FUNCTION NEW_VERSION()
 RETURNS INT
 DETERMINISTIC
 BEGIN
-    DECLARE result CHAR(32);
+    DECLARE result CHAR(36);
     INSERT INTO t_version (created) VALUES (NOW());
     SET result = LAST_INSERT_ID();
     RETURN result;
@@ -81,7 +81,7 @@ DROP TABLE IF EXISTS t_model;
 
 CREATE TABLE IF NOT EXISTS t_model (
   id INT NOT NULL AUTO_INCREMENT,
-  uuid CHAR(32) NOT NULL,
+  uuid CHAR(36) NOT NULL,
   name VARCHAR(45) NOT NULL,
   description VARCHAR(255) NULL,
   version_id INT NOT NULL,
@@ -115,7 +115,7 @@ DROP TABLE IF EXISTS t_instance;
 
 CREATE TABLE IF NOT EXISTS t_instance (
   id INT NOT NULL AUTO_INCREMENT,
-  uuid CHAR(32) NOT NULL,
+  uuid CHAR(36) NOT NULL,
   model_id INT NOT NULL,
   version_id INT NOT NULL,
   PRIMARY KEY (id),
@@ -158,7 +158,7 @@ DROP TABLE IF EXISTS t_property;
 
 CREATE TABLE IF NOT EXISTS t_property (
   id INT NOT NULL AUTO_INCREMENT,
-  uuid CHAR(32) NOT NULL,
+  uuid CHAR(36) NOT NULL,
   name VARCHAR(45) NOT NULL,
   description VARCHAR(255) NULL,
   type ENUM('boolean','integer','double','datetime','binary','ascii','instance') NOT NULL,
@@ -209,7 +209,7 @@ DROP TABLE IF EXISTS t_list;
 
 CREATE TABLE IF NOT EXISTS t_list (
   id INT NOT NULL AUTO_INCREMENT,
-  uuid CHAR(32) NOT NULL,
+  uuid CHAR(36) NOT NULL,
   property_id INT NOT NULL,
   instance_id INT NOT NULL,
   version_id INT NOT NULL,
@@ -256,7 +256,7 @@ DROP TABLE IF EXISTS t_boolean_value;
 
 CREATE TABLE IF NOT EXISTS t_boolean_value (
   id INT NOT NULL AUTO_INCREMENT,
-  uuid CHAR(32) NOT NULL,
+  uuid CHAR(36) NOT NULL,
   value BIT(1) NOT NULL,
   property_id INT NULL,
   list_id INT NULL,
@@ -311,7 +311,7 @@ DROP TABLE IF EXISTS t_integer_value;
 
 CREATE TABLE IF NOT EXISTS t_integer_value (
   id INT NOT NULL,
-  uuid CHAR(32) NOT NULL,
+  uuid CHAR(36) NOT NULL,
   value INT NOT NULL DEFAULT 0,
   property_id INT NULL,
   list_id INT NULL,
@@ -365,7 +365,7 @@ DROP TABLE IF EXISTS t_double_value;
 
 CREATE TABLE IF NOT EXISTS t_double_value (
   id INT NOT NULL AUTO_INCREMENT,
-  uuid CHAR(32) NOT NULL,
+  uuid CHAR(36) NOT NULL,
   value DOUBLE NOT NULL DEFAULT 0.0,
   property_id INT NULL,
   list_id INT NULL,
@@ -420,7 +420,7 @@ DROP TABLE IF EXISTS t_datetime_value;
 
 CREATE TABLE IF NOT EXISTS t_datetime_value (
   id INT NOT NULL AUTO_INCREMENT,
-  uuid CHAR(32) NOT NULL,
+  uuid CHAR(36) NOT NULL,
   value DATETIME NULL,
   property_id INT NULL,
   list_id INT NULL,
@@ -475,7 +475,7 @@ DROP TABLE IF EXISTS t_binary_value;
 
 CREATE TABLE IF NOT EXISTS t_binary_value (
   id INT NOT NULL AUTO_INCREMENT,
-  uuid CHAR(32) NOT NULL,
+  uuid CHAR(36) NOT NULL,
   value LONGBLOB NULL,
   property_id INT NULL,
   list_id INT NULL,
@@ -531,7 +531,7 @@ DROP TABLE IF EXISTS t_smalltext_value;
 
 CREATE TABLE IF NOT EXISTS t_smalltext_value (
   id INT NOT NULL AUTO_INCREMENT,
-  uuid CHAR(32) NOT NULL,
+  uuid CHAR(36) NOT NULL,
   value VARCHAR(1000) NULL,
   property_id INT NULL,
   list_id INT NULL,
@@ -587,7 +587,7 @@ DROP TABLE IF EXISTS t_mediumtext_value;
 
 CREATE TABLE IF NOT EXISTS t_mediumtext_value (
   id INT NOT NULL AUTO_INCREMENT,
-  uuid CHAR(32) NOT NULL,
+  uuid CHAR(36) NOT NULL,
   value VARCHAR(4000) NULL,
   property_id INT NULL,
   list_id INT NULL,
@@ -643,7 +643,7 @@ DROP TABLE IF EXISTS t_longtext_value;
 
 CREATE TABLE IF NOT EXISTS t_longtext_value (
   id INT NOT NULL AUTO_INCREMENT,
-  uuid CHAR(32) NOT NULL,
+  uuid CHAR(36) NOT NULL,
   value LONGTEXT NULL,
   property_id INT NULL,
   list_id INT NULL,
@@ -700,7 +700,7 @@ DROP TABLE IF EXISTS t_instance_value;
 
 CREATE TABLE IF NOT EXISTS t_instance_value (
   id INT NOT NULL AUTO_INCREMENT,
-  uuid CHAR(32) NOT NULL,
+  uuid CHAR(36) NOT NULL,
   value_instance_id INT NOT NULL,
   property_id INT NULL,
   list_id INT NULL,
