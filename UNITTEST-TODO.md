@@ -3,10 +3,7 @@ UNIT TEST TODO
 
 * ellipsis.php 
     * all functions
-* php.php 
-    * touch_recursive()
-    * asciihex()
-    * hexascii()
+* php.php *DONE*
 * image.php
     * all functions
 * mysql.php
