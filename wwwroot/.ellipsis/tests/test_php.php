@@ -9,6 +9,20 @@ require_once('../php.php');
 
 // test class
 class TestOfPhp extends UnitTestCase {
+
+function rrmdir($dir) { 
+   if (is_dir($dir)) { 
+     $objects = scandir($dir); 
+     foreach ($objects as $object) { 
+       if ($object != "." && $object != "..") { 
+         if (filetype($dir."/".$object) == "dir") rrmdir($dir."/".$object); else unlink($dir."/".$object); 
+       } 
+     } 
+     reset($objects); 
+     rmdir($dir); 
+   } 
+ } 
+
 	function setUp()
 	{
 		// global configurations
@@ -188,18 +202,39 @@ class TestOfPhp extends UnitTestCase {
 	
 	function testTouch_Recursive()
 	{
-		// mock recursive dir object
-		$mockDir = array('Core' => array(
-							'AbstractFactory' => array()
-				        	)
-						);
-		$root = vfsStream::create($mockDir);
-		echo 'url: ' . vfsStream::url('Core/AbstractFactory') . "\n";
-		$this->assertFalse(vfsStreamWrapper::getRoot()->getChild('AbstractFactory')->hasChild('tmp'), "tmp should not exist");
-		$this->assertTrue(touch_recursive(vfsStream::url('Core/AbstractFactory') . '/tmp/index.php1234'),"Touch should return true");
-		$this->assertTrue(vfsStreamWrapper::getRoot()->getChild('AbstractFactory')->hasChild('tmp'), "tmp directory should exist");
-		$this->assertTrue(vfsStreamWrapper::getRoot()->getChild('AbstractFactory')->getChild('tmp')->hasChild('index.php1234'), "index.php should exist");
+		/*
+		 * 
+		 * From vfsStream Known issues file: 
+		 * touch() does not work with any other URLs than pure filenames.
+		 * In this case it is necessary to remove a local temporary directory.
+		 * 
+		 */ 
+		
+		if(is_dir('tmp'))
+		{
+			$this->rrmdir('tmp');
+		}
+		
+		$this->assertFalse(is_dir('tmp'), "tmp should not exist");
+		$this->assertTrue(touch_recursive('tmp/index.php1234'),"Touch should return true");
+		$this->assertTrue(is_dir('tmp'), "tmp directory should exist");
+		$this->assertTrue(is_file('tmp/index.php1234'), "index.php1234 should exist");
+		
+		if(is_dir('tmp'))
+		{
+			$this->rrmdir('tmp');
+		}
+		
 	}
 	
+	function testAsciiHex()
+	{
+		$this->assertEqual(asciihex('Hi'), '4869', 'asciihex should convert ASCII to Hex mapped values');
+	}
+	
+	function testHexAscii()
+	{
+		$this->assertEqual(hexascii('4869'), 'Hi', 'hexascii should convert Hex to ASCII values');
+	}	
 }
 ?>
