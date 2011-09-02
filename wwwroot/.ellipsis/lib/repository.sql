@@ -770,7 +770,9 @@ WHERE
   m.version_id = v.id AND
   v.active = true
 GROUP BY
-  m.uuid;
+  m.uuid
+ORDER BY
+  m.id DESC;
 
 
 -- -----------------------------------------------------
