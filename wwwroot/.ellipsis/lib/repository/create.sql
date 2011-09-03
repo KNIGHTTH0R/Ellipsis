@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS t_version (
     id INT NOT NULL AUTO_INCREMENT,
     tag VARCHAR(100) NULL,
     active BIT(1) NOT NULL DEFAULT 1,
-    created DATETIME NOT NULL,
+    created TIMESTAMP NOT NULL,
     PRIMARY KEY (id))
 ENGINE = InnoDB;
 
@@ -63,7 +63,7 @@ RETURNS INT
 DETERMINISTIC
 BEGIN
     DECLARE result CHAR(36);
-    INSERT INTO t_version (created) VALUES (NOW());
+    INSERT INTO t_version (tag) VALUES ('');
     SET result = LAST_INSERT_ID();
     RETURN result;
 END~
@@ -428,7 +428,7 @@ DROP TABLE IF EXISTS t_value_datetime;
 CREATE TABLE IF NOT EXISTS t_value_datetime (
     id INT NOT NULL AUTO_INCREMENT,
     uuid CHAR(36) NOT NULL,
-    value DATETIME NULL,
+    value INT NULL,
     property_id INT NULL,
     list_id INT NULL,
     instance_id INT NOT NULL,
