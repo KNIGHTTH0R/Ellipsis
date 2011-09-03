@@ -32,12 +32,147 @@ class Repository {
     private static $_rules = null;
 
     /**
+     * determine if the passed value is of a certain type
+     *
+     * @param string $type
+     * @param mixed $value
+     * @return boolean
+     */
+    private static function _isType($type, $value){
+        switch($type){
+            case 'boolean':
+                if (is_bool($value)){
+                    return true;
+                } else if (is_numeric($value) && ($value == 0 || $value == 1)){
+                    return true;
+                } else if (is_string($value)){
+                    if ($value == 'true' || $value == 'false'){
+                        return true;
+                    } else if ($value == '1' || $value == '0'){
+                        return true;
+                    }
+                }
+                break;
+            case 'integer':
+                if (is_int($value)){
+                    return true;
+                } else if (preg_match('/^[0-9]+$/', $value)){
+                    return true;
+                }
+                break;
+            case 'double':
+                if (is_float($value) || is_numeric($value)){
+                    return true;
+                }
+                break;
+            case 'datetime':
+                if (is_int($value) || strtotime($value)){
+                    return true;
+                }
+                break;
+            case 'binary':
+                if (is_binary($value)){
+                    return true;
+                }
+                break;
+            case 'ascii':
+                if (is_string($value)){
+                    return true;
+                }
+                break;
+            case 'instance':
+                $uuid = null;
+                if (is_object($value) && isset($value->uuid) && is_mysql_uuid($value->uuid)){
+                    $uuid = $value->uuid;
+                } else if (is_mysql_uuid($value)){
+                    $uuid = $value;
+                }
+                if ($uuid != null){
+                    $id = Mysql::query("SELECT MAX(id) FROM t_instance where uuid = '{$uuid}'");
+                    if ($id && is_int($id)){
+                        return true;
+                    }
+                }
+                break;
+        }
+
+        // all else failed
+        return false;
+    }
+
+    /**
+     * convert the passed value to a certain type
+     *
+     * @param string $type
+     * @param mixed $value
+     * @return mixed|null
+     */
+    private static function _toType($type, $value){
+        switch($type){
+            case 'boolean':
+                if (is_bool($value)){
+                    return $value;
+                } else if (is_numeric($value) && ($value == 1 || $value == 0)){
+                    return ($value == 1) ? true : false;
+                } else if (is_string($value)){
+                    if ($value == 'true' || $value == 'false'){
+                        return ($value == 'true') ? true : false;
+                    } else if ($value == '1' || $value == '0'){
+                        return ($value == 1) ? true : false;
+                    }
+                }
+                break;
+            case 'integer':
+                if (is_int($value)){
+                    return $value;
+                } else if (preg_match('/^[0-9]+$/', $value)){
+                    return (int) $value;
+                }
+                break;
+            case 'double':
+                if (is_float($value)){
+                    return $value;
+                } else if (is_numeric($value)){
+                    return (float) $value;
+                }
+                break;
+            case 'datetime':
+                if (is_int($value)){
+                    return $value;
+                } else {
+                    $time = strtotime($value);
+                    if ($time){
+                        return $time;
+                    }
+                }
+                break;
+            case 'binary':
+                if (is_binary($value)){
+                    return $value;
+                } else {
+                    return pack((string) $value);
+                }
+                break;
+            case 'ascii':
+                return (string) $value;
+            case 'instance':
+                if (self::_isType('uuid', $value)){
+                    return $value;
+                }
+                break;
+        }
+
+        // all else failed
+        return null;
+    }
+
+    /**
      * load data models
      *
      * @param void
      * @return void
      */
-    private static function loadModels(){
+    private static function _loadModels(){
         if (self::$_models == null){
             $sql = 'SELECT id, uuid, name, description, version_id, created FROM v_model WHERE 1';
             $models = Mysql::query($sql);
@@ -64,7 +199,7 @@ class Repository {
      * @param array $properties
      * @return boolean
      */
-    private static function createModel($name, $description, $properties){
+    private static function _createModel($name, $description, $properties){
         // prevent duplicate models within a living revision
         foreach(self::$_models as $model){
             if ($model->name == $name) return false;
@@ -130,7 +265,7 @@ class Repository {
 
                 // everything succeeded, reload the available models
                 self::$_models = null;
-                self::loadModels();
+                self::_loadModels();
 
                 // notify success
                 return true;
@@ -148,9 +283,35 @@ class Repository {
      *
      * @param integer $model_id
      * @param object $property_values
-     * @return boolean
+     * @return integer|null
      */
-    public static function createInstance($model_id, $property_values){
+    private static function _createInstance($model_id, $property_values){
+        $valid_model = false;
+        $valid_properties = true;
+
+        // validate structure
+        foreach(self::$_models as $model){
+            if ($model->id == $model_id){
+                $valid_model = true;
+                foreach($model as $key => $value){
+                    if ($key != 'id'){
+                        if (!array_key_exists($key, $property_values)){
+                            $valid_properties = false;
+                            break;
+                        }
+                    }
+                }
+                break;
+            }
+        }
+
+        if ($valid_model && $valid_properties){
+            // validate data
+            foreach(self::$_rules as $type => $ruleset){
+
+            }
+        }
+
         return null;
     }
 
