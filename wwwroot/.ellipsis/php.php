@@ -427,3 +427,17 @@ function hexascii($hex){
     return $ascii;
 }
 
+/**
+ * determine if passed value is a binary string
+ *
+ * @param string $string
+ * @return boolean
+ */
+function is_binary($string){
+    return (
+        0 or 
+        (substr_count($string, "^ -~", "^\r\n")/512 > 0.3) or 
+        (substr_count($string, "\x00") > 0)
+    );
+}
+
