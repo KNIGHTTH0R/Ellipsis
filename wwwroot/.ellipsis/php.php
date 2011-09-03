@@ -441,3 +441,16 @@ function is_binary($string){
     );
 }
 
+/**
+ * determine if passed value is a mysql compatible uuid
+ *
+ * @param string $uuid
+ * @return boolean
+ */
+function is_mysql_uuid($uuid){
+    if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/', $uuid)){
+        return true;
+    }
+    return false;
+}
+
