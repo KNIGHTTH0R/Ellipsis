@@ -63,7 +63,7 @@ class Mysql {
      * execute a sql query and return expected output
      *
      * @param string $sql
-     * @return array|integer|null
+     * @return array|integer|boolean|null
      */
     public static function query($sql){
         if (self::connect()){
@@ -90,6 +90,10 @@ class Mysql {
                                 }
                             }
                             return $data;
+                        case 'begin':
+                        case 'commit':
+                        case 'rollback':
+                            return true;
                     }
                 }
             }
