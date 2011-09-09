@@ -1,7 +1,15 @@
 <?php
+// simpletest 
 require_once('../lib/simpletest/autorun.php');
-require_once('../ellipsis.php');
+
 class TestOfEllipsis extends UnitTestCase {
+	
+	// since Ellipsis self-constructs on include, it needs to be a conditional situation
+	function includeEllipsis(){
+		// Ellipsis Core
+		require_once('../ellipsis.php');
+	}
+	
 	function setUp()
 	{
 		// global configurations
@@ -16,14 +24,48 @@ class TestOfEllipsis extends UnitTestCase {
 	{
 		// Set up environment for test
 		$_SERVER['REQUEST_URI'] = '/bob';
-		
-		// run construct
-		Ellipsis::construct();
-		
+
+		$this->includeEllipsis();		
+
 		// ENV vars are set
-		$this->assert(__DIR__, $_ENV['SCRIPT_ROOT'], '$_ENV variables should be set');
+		$this->assertEqual(substr(__DIR__, 0,strrpos(__DIR__, DIRECTORY_SEPARATOR)), $_ENV['SCRIPT_ROOT'], '$_ENV variables should be set.  SCRIPT_ROOT = ' . $_ENV['SCRIPT_ROOT'] . " DIR = " . __DIR__);
 		// PATH_INFO is parsed
-		$this->assert('bob', $_SERVER['PATH_INFO'], '$_SERVER[\'PATH_INFO\'] should be populated');
+		$this->assertEqual('/bob', $_SERVER['PATH_INFO'], '$_SERVER[\'PATH_INFO\'] should be populated.  PATH_INFO = ' . $_SERVER['PATH_INFO']);
+		
+	}
+	
+	function testDestruct()
+	{
+		
+	}
+	
+	function testRun()
+	{
+		
+	}
+	
+	function testCache()
+	{
+		
+	}
+	
+	function testRoute()
+	{
+		
+	}
+	
+	function testLoad()
+	{
+		
+	}
+	
+	function testFail()
+	{
+		
+	}
+	
+	function testDebug()
+	{
 		
 	}
 }
