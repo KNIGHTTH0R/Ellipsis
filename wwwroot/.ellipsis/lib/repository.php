@@ -2,9 +2,15 @@
 
 /**
  * Repository is an ORM (Object Relational Mapping) module built for Ellipsis 
- * that intentionally relies on native functionality found within MySQL. The 
- * goals behind this module are data integrity, version control, high 
- * performance, and simple structure manipulation.
+ * that intentionally takes advantage of native functionality in MySQL rather
+ * than obscure it for cross-database support. The goals behind this module 
+ * are data integrity, version control, high performance, and simple structure
+ * manipulation.
+ *
+ * Note: In the future I intend to add MongoDB support to this module as well
+ * as a way to have the best of both worlds in one package (i.e. if you don't
+ * need data integrity then your object may be stored in MongoDB instead of
+ * MySQL).
  *
  * @author Toby Miller <tobius.miller@gmail.com>
  * @license MIT <http://www.opensource.org/licenses/mit-license.php>
@@ -14,25 +20,50 @@
 class Repository {
 
     /**
-     * self representation
+     * reference to self (useful for going between static and object)
      * @var object
      */
     private static $_self = null;
 
     /**
-     * loaded data models
+     * models available in the database
      * @var array
      */
     private static $_models = null;
 
     /**
-     * loaded property rules
+     * native property types
      * @var array
      */
-    private static $_rules = null;
+    private static $_nativeTypes = array('boolean', 'integer', 'double', 'datetime', 'binary', 'ascii', 'instance');
 
     /**
-     * determine if the passed value is of a certain type
+     * extended property types
+     *
+     * An example extended property type array would look like this:
+     * array(
+     *     'extendedType' => array(
+     *         'type'       => 'nativeType',
+     *         'validate'   => '/regexpValidMatch/',
+     *         'sanitize'   => array('/regexpSearch/', '/regexpReplace/'),
+     *         'render'     => array('/regexpRenderSearch/', '/regexpRenderReplace/'),
+     *         'example'    => 'validExampleValue'
+     *     ),
+     * )
+     *
+     * The purpose of each key is as follows:
+     * type - maps to the native property type in the database
+     * validate - uses a regexp to determine if the passed value is valid or not (only applies to string types)
+     * sanitize - uses a regexp to replace a passed value with a cleaner version before database entry
+     * render - uses a regexp to rended a value from the database for an optimized display
+     * example - makes a valid example available for error messaging
+     *
+     * @var array
+     */
+    private static $_extendedTypes = null;
+
+    /**
+     * determine if the passed value is a specific property type
      *
      * @param string $type
      * @param mixed $value
@@ -93,6 +124,9 @@ class Repository {
                         return true;
                     }
                 }
+            default:
+                if (self::_isExtendedType($type, $value)){
+                }
                 break;
         }
 
@@ -101,7 +135,40 @@ class Repository {
     }
 
     /**
-     * convert the passed value to a certain type
+     * determine if the passed value is an extended property type
+     *
+     * @param string $type
+     * @param mixed $value
+     * @return boolean
+     */
+    private static function _isExtendedType($type, $value){
+        foreach(self::$_extendedTypes as $extendedType => $extendedData){
+            if ($type == $extendedType){
+                if (in_array($extendedType['type'], self::$_nativeTypes) && self::_isType($extendedType['type'], $value)){
+                    return true;
+                }
+            }
+        }
+
+        // all else failed
+        return false;
+    }
+
+    /**
+     * determine if the passed extended property value is valid
+     *
+     * @param string $type
+     * @param mixed $value
+     * @return boolean
+     */
+    private static function _isValidExtendedValue($type, $value){
+        if (self::isExtendedType($type, $value)){
+            if (self::$_extendedTypes[$type]['
+        }
+    }
+
+    /**
+     * cast the passed value to a specific property type
      *
      * @param string $type
      * @param mixed $value
@@ -167,7 +234,7 @@ class Repository {
     }
 
     /**
-     * load data models
+     * load available data models
      *
      * @param void
      * @return void
@@ -231,10 +298,15 @@ class Repository {
                     }
                 }
                 if ($valid){
-                    if (!$property->list){
-                        $property->list = false;
+                    if (self::_isType($property->type, $property->value)){
+                        $property->value = self::_toType($property->type);
+                        if (!$property->list){
+                            $property->list = false;
+                        } else {
+                            $property->list = true;
+                        }
                     } else {
-                        $property->list = true;
+                        $valid = false;
                     }
                 }
             }
@@ -259,8 +331,8 @@ class Repository {
                 }
             }
 
-            // commit or rollback the transaction
             if ($success){
+                // commit the transaction
                 Mysql::query('COMMIT');
 
                 // everything succeeded, reload the available models
@@ -270,6 +342,7 @@ class Repository {
                 // notify success
                 return true;
             } else {
+                // roll back the transaction
                 Mysql::query('ROLLBACK');
             }
         }
@@ -281,20 +354,20 @@ class Repository {
     /**
      * create a new data instance
      *
-     * @param integer $model_id
-     * @param object $property_values
+     * @param string $model_uuid
+     * @param array $property_values
      * @return integer|null
      */
-    private static function _createInstance($model_id, $property_values){
+    private static function _createInstance($model_uuid, $property_values){
         $valid_model = false;
         $valid_properties = true;
 
         // validate structure
         foreach(self::$_models as $model){
-            if ($model->id == $model_id){
+            if ($model->uuid == $model_uuid){
                 $valid_model = true;
                 foreach($model as $key => $value){
-                    if ($key != 'id'){
+                    if (!in_array($key, array('id', 'uuid', 'created'))){
                         if (!array_key_exists($key, $property_values)){
                             $valid_properties = false;
                             break;
@@ -312,6 +385,16 @@ class Repository {
             }
         }
 
+        return null;
+    }
+
+    /**
+     * query an existing data instance
+     *
+     * @param string $uuid
+     * @return object|null
+     */
+    public static query($uuid){
         return null;
     }
 
