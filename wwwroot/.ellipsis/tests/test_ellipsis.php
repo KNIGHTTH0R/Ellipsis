@@ -36,12 +36,12 @@ class TestOfEllipsis extends UnitTestCase {
 	
 	function testDestruct()
 	{
-		
+		// is this necessary to test?
 	}
 	
 	function testRun()
 	{
-		
+		//
 	}
 	
 	function testCache()
