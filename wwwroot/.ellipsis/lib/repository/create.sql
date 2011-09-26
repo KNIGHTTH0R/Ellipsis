@@ -1452,7 +1452,7 @@ SELECT
     hex(p.model_uuid) AS model_uuid,
     pd.name AS name,
     pd.description AS description,
-    pd.type AS type,
+    pd.type AS `type`,
     pd.mincount AS mincount,
     pd.maxcount AS maxcount,
     pd.minlength AS minlength,
@@ -1497,6 +1497,575 @@ WHERE
 -- "uuid".
 -- ---------------------------------------------------------------------------
 
+CREATE VIEW v_instance AS
+SELECT
+    hex(i.uuid) AS uuid,
+    hex(i.model_uuid) AS model_uuid,
+    v2.created AS created
+FROM
+    t_version v1,
+    t_version v2,
+    t_model m,
+    t_instance i
+LEFT JOIN t_instance i2 ON
+    (
+        i.uuid = i2.uuid AND
+        i.version_uuid < i2.version_uuid
+    )
+WHERE
+    i2.version_uuid IS NULL AND
+    i.model_uuid = m.uuid AND
+    m.version_uuid = v1.uuid AND
+    i.version_uuid = v2.uuid AND
+    v1.active = TRUE AND
+    v2.active = TRUE;
+
+
+-- ---------------------------------------------------------------------------
+-- View v_boolean_value
+--
+-- This value view represents the latest version of every active boolean value 
+-- record in the repository. This view should be primarily called by the 
+-- generic value view rather than directly.
+-- ---------------------------------------------------------------------------
+
+CREATE VIEW v_boolean_value AS
+SELECT
+    hex(b.uuid) AS uuid,
+    hex(b.instance_uuid) AS instance_uuid,
+    hex(b.property_uuid) AS property_uuid,
+    bd.key AS `key`,
+    bd.value AS value,
+    v3.created AS created
+FROM
+    t_version v1,
+    t_version v2,
+    t_version v3,
+    t_version v4,
+    t_instance i,
+    t_property p,
+    t_boolean b,
+    t_boolean_data bd
+LEFT JOIN t_boolean_data bd2 ON
+    (
+        bd.boolean_uuid = bd2.boolean_uuid AND
+        bd.version_uuid < bd2.version_uuid
+    )
+WHERE
+    bd2.version_uuid IS NULL AND
+    b.uuid = bd.boolean_uuid AND
+    b.instance_uuid = i.uuid AND
+    b.property_uuid = p.uuid AND
+    i.version_uuid = v1.uuid AND
+    p.version_uuid = v2.uuid AND
+    b.version_uuid = v3.uuid AND
+    bd.version_uuid = v4.uuid AND
+    v1.active = TRUE AND
+    v2.active = TRUE AND
+    v3.active = TRUE AND
+    v4.active = TRUE;
+
+
+-- ---------------------------------------------------------------------------
+-- View v_integer_value
+--
+-- This value view represents the latest version of every active integer value 
+-- record in the repository. This view should be primarily called by the 
+-- generic value view rather than directly.
+-- ---------------------------------------------------------------------------
+
+CREATE VIEW v_integer_value AS
+SELECT
+    hex(n.uuid) AS uuid,
+    hex(n.instance_uuid) AS instance_uuid,
+    hex(n.property_uuid) AS property_uuid,
+    nd.key AS `key`,
+    nd.value AS value,
+    v3.created AS created
+FROM
+    t_version v1,
+    t_version v2,
+    t_version v3,
+    t_version v4,
+    t_instance i,
+    t_property p,
+    t_integer n,
+    t_integer_data nd
+LEFT JOIN t_integer_data nd2 ON
+    (
+        nd.integer_uuid = nd2.integer_uuid AND
+        nd.version_uuid < nd2.version_uuid
+    )
+WHERE
+    nd2.version_uuid IS NULL AND
+    n.uuid = nd.integer_uuid AND
+    n.instance_uuid = i.uuid AND
+    n.property_uuid = p.uuid AND
+    i.version_uuid = v1.uuid AND
+    p.version_uuid = v2.uuid AND
+    n.version_uuid = v3.uuid AND
+    nd.version_uuid = v4.uuid AND
+    v1.active = TRUE AND
+    v2.active = TRUE AND
+    v3.active = TRUE AND
+    v4.active = TRUE;
+
+
+-- ---------------------------------------------------------------------------
+-- View v_double_value
+--
+-- This value view represents the latest version of every active double value 
+-- record in the repository. This view should be primarily called by the 
+-- generic value view rather than directly.
+-- ---------------------------------------------------------------------------
+
+CREATE VIEW v_double_value AS
+SELECT
+    hex(d.uuid) AS uuid,
+    hex(d.instance_uuid) AS instance_uuid,
+    hex(d.property_uuid) AS property_uuid,
+    dd.key AS `key`,
+    dd.value AS value,
+    v3.created AS created
+FROM
+    t_version v1,
+    t_version v2,
+    t_version v3,
+    t_version v4,
+    t_instance i,
+    t_property p,
+    t_double d,
+    t_double_data dd
+LEFT JOIN t_double_data dd2 ON
+    (
+        dd.double_uuid = dd2.double_uuid AND
+        dd.version_uuid < dd2.version_uuid
+    )
+WHERE
+    dd2.version_uuid IS NULL AND
+    d.uuid = dd.double_uuid AND
+    d.instance_uuid = i.uuid AND
+    d.property_uuid = p.uuid AND
+    i.version_uuid = v1.uuid AND
+    p.version_uuid = v2.uuid AND
+    d.version_uuid = v3.uuid AND
+    dd.version_uuid = v4.uuid AND
+    v1.active = TRUE AND
+    v2.active = TRUE AND
+    v3.active = TRUE AND
+    v4.active = TRUE;
+
+
+-- ---------------------------------------------------------------------------
+-- View v_datetime_value
+--
+-- This value view represents the latest version of every active datetime value 
+-- record in the repository. This view should be primarily called by the 
+-- generic value view rather than directly.
+-- ---------------------------------------------------------------------------
+
+CREATE VIEW v_datetime_value AS
+SELECT
+    hex(t.uuid) AS uuid,
+    hex(t.instance_uuid) AS instance_uuid,
+    hex(t.property_uuid) AS property_uuid,
+    td.key AS `key`,
+    td.value AS value,
+    v3.created AS created
+FROM
+    t_version v1,
+    t_version v2,
+    t_version v3,
+    t_version v4,
+    t_instance i,
+    t_property p,
+    t_datetime t,
+    t_datetime_data td
+LEFT JOIN t_datetime_data td2 ON
+    (
+        td.datetime_uuid = td2.datetime_uuid AND
+        td.version_uuid < td2.version_uuid
+    )
+WHERE
+    td2.version_uuid IS NULL AND
+    t.uuid = td.datetime_uuid AND
+    t.instance_uuid = i.uuid AND
+    t.property_uuid = p.uuid AND
+    i.version_uuid = v1.uuid AND
+    p.version_uuid = v2.uuid AND
+    t.version_uuid = v3.uuid AND
+    td.version_uuid = v4.uuid AND
+    v1.active = TRUE AND
+    v2.active = TRUE AND
+    v3.active = TRUE AND
+    v4.active = TRUE;
+
+
+-- ---------------------------------------------------------------------------
+-- View v_smallbinary_value
+--
+-- This value view represents the latest version of every active smallbinary
+-- value record in the repository. This view should be primarily called by the 
+-- generic value view rather than directly.
+-- ---------------------------------------------------------------------------
+
+CREATE VIEW v_smallbinary_value AS
+SELECT
+    hex(b.uuid) AS uuid,
+    hex(b.instance_uuid) AS instance_uuid,
+    hex(b.property_uuid) AS property_uuid,
+    bd.key AS `key`,
+    bd.value AS value,
+    v3.created AS created
+FROM
+    t_version v1,
+    t_version v2,
+    t_version v3,
+    t_version v4,
+    t_instance i,
+    t_property p,
+    t_smallbinary b,
+    t_smallbinary_data bd
+LEFT JOIN t_smallbinary_data bd2 ON
+    (
+        bd.smallbinary_uuid = bd2.smallbinary_uuid AND
+        bd.version_uuid < bd2.version_uuid
+    )
+WHERE
+    bd2.version_uuid IS NULL AND
+    b.uuid = bd.smallbinary_uuid AND
+    b.instance_uuid = i.uuid AND
+    b.property_uuid = p.uuid AND
+    i.version_uuid = v1.uuid AND
+    p.version_uuid = v2.uuid AND
+    b.version_uuid = v3.uuid AND
+    bd.version_uuid = v4.uuid AND
+    v1.active = TRUE AND
+    v2.active = TRUE AND
+    v3.active = TRUE AND
+    v4.active = TRUE;
+
+
+-- ---------------------------------------------------------------------------
+-- View v_mediumbinary_value
+--
+-- This value view represents the latest version of every active mediumbinary
+-- value record in the repository. This view should be primarily called by the 
+-- generic value view rather than directly.
+-- ---------------------------------------------------------------------------
+
+CREATE VIEW v_mediumbinary_value AS
+SELECT
+    hex(b.uuid) AS uuid,
+    hex(b.instance_uuid) AS instance_uuid,
+    hex(b.property_uuid) AS property_uuid,
+    bd.key AS `key`,
+    bd.value AS value,
+    v3.created AS created
+FROM
+    t_version v1,
+    t_version v2,
+    t_version v3,
+    t_version v4,
+    t_instance i,
+    t_property p,
+    t_mediumbinary b,
+    t_mediumbinary_data bd
+LEFT JOIN t_mediumbinary_data bd2 ON
+    (
+        bd.mediumbinary_uuid = bd2.mediumbinary_uuid AND
+        bd.version_uuid < bd2.version_uuid
+    )
+WHERE
+    bd2.version_uuid IS NULL AND
+    b.uuid = bd.mediumbinary_uuid AND
+    b.instance_uuid = i.uuid AND
+    b.property_uuid = p.uuid AND
+    i.version_uuid = v1.uuid AND
+    p.version_uuid = v2.uuid AND
+    b.version_uuid = v3.uuid AND
+    bd.version_uuid = v4.uuid AND
+    v1.active = TRUE AND
+    v2.active = TRUE AND
+    v3.active = TRUE AND
+    v4.active = TRUE;
+
+
+-- ---------------------------------------------------------------------------
+-- View v_longbinary_value
+--
+-- This value view represents the latest version of every active longbinary
+-- value record in the repository. This view should be primarily called by the 
+-- generic value view rather than directly.
+-- ---------------------------------------------------------------------------
+
+CREATE VIEW v_longbinary_value AS
+SELECT
+    hex(b.uuid) AS uuid,
+    hex(b.instance_uuid) AS instance_uuid,
+    hex(b.property_uuid) AS property_uuid,
+    bd.key AS `key`,
+    bd.value AS value,
+    v3.created AS created
+FROM
+    t_version v1,
+    t_version v2,
+    t_version v3,
+    t_version v4,
+    t_instance i,
+    t_property p,
+    t_longbinary b,
+    t_longbinary_data bd
+LEFT JOIN t_longbinary_data bd2 ON
+    (
+        bd.longbinary_uuid = bd2.longbinary_uuid AND
+        bd.version_uuid < bd2.version_uuid
+    )
+WHERE
+    bd2.version_uuid IS NULL AND
+    b.uuid = bd.longbinary_uuid AND
+    b.instance_uuid = i.uuid AND
+    b.property_uuid = p.uuid AND
+    i.version_uuid = v1.uuid AND
+    p.version_uuid = v2.uuid AND
+    b.version_uuid = v3.uuid AND
+    bd.version_uuid = v4.uuid AND
+    v1.active = TRUE AND
+    v2.active = TRUE AND
+    v3.active = TRUE AND
+    v4.active = TRUE;
+
+
+-- ---------------------------------------------------------------------------
+-- View v_smalltext_value
+--
+-- This value view represents the latest version of every active smalltext
+-- value record in the repository. This view should be primarily called by the 
+-- generic value view rather than directly.
+-- ---------------------------------------------------------------------------
+
+CREATE VIEW v_smalltext_value AS
+SELECT
+    hex(t.uuid) AS uuid,
+    hex(t.instance_uuid) AS instance_uuid,
+    hex(t.property_uuid) AS property_uuid,
+    td.key AS `key`,
+    td.value AS value,
+    v3.created AS created
+FROM
+    t_version v1,
+    t_version v2,
+    t_version v3,
+    t_version v4,
+    t_instance i,
+    t_property p,
+    t_smalltext t,
+    t_smalltext_data td
+LEFT JOIN t_smalltext_data td2 ON
+    (
+        td.smalltext_uuid = td2.smalltext_uuid AND
+        td.version_uuid < td2.version_uuid
+    )
+WHERE
+    td2.version_uuid IS NULL AND
+    t.uuid = td.smalltext_uuid AND
+    t.instance_uuid = i.uuid AND
+    t.property_uuid = p.uuid AND
+    i.version_uuid = v1.uuid AND
+    p.version_uuid = v2.uuid AND
+    t.version_uuid = v3.uuid AND
+    td.version_uuid = v4.uuid AND
+    v1.active = TRUE AND
+    v2.active = TRUE AND
+    v3.active = TRUE AND
+    v4.active = TRUE;
+
+
+-- ---------------------------------------------------------------------------
+-- View v_mediumtext_value
+--
+-- This value view represents the latest version of every active mediumtext
+-- value record in the repository. This view should be primarily called by the 
+-- generic value view rather than directly.
+-- ---------------------------------------------------------------------------
+
+CREATE VIEW v_mediumtext_value AS
+SELECT
+    hex(t.uuid) AS uuid,
+    hex(t.instance_uuid) AS instance_uuid,
+    hex(t.property_uuid) AS property_uuid,
+    td.key AS `key`,
+    td.value AS value,
+    v3.created AS created
+FROM
+    t_version v1,
+    t_version v2,
+    t_version v3,
+    t_version v4,
+    t_instance i,
+    t_property p,
+    t_mediumtext t,
+    t_mediumtext_data td
+LEFT JOIN t_mediumtext_data td2 ON
+    (
+        td.mediumtext_uuid = td2.mediumtext_uuid AND
+        td.version_uuid < td2.version_uuid
+    )
+WHERE
+    td2.version_uuid IS NULL AND
+    t.uuid = td.mediumtext_uuid AND
+    t.instance_uuid = i.uuid AND
+    t.property_uuid = p.uuid AND
+    i.version_uuid = v1.uuid AND
+    p.version_uuid = v2.uuid AND
+    t.version_uuid = v3.uuid AND
+    td.version_uuid = v4.uuid AND
+    v1.active = TRUE AND
+    v2.active = TRUE AND
+    v3.active = TRUE AND
+    v4.active = TRUE;
+
+
+-- ---------------------------------------------------------------------------
+-- View v_longtext_value
+--
+-- This value view represents the latest version of every active longtext
+-- value record in the repository. This view should be primarily called by the 
+-- generic value view rather than directly.
+-- ---------------------------------------------------------------------------
+
+CREATE VIEW v_longtext_value AS
+SELECT
+    hex(t.uuid) AS uuid,
+    hex(t.instance_uuid) AS instance_uuid,
+    hex(t.property_uuid) AS property_uuid,
+    td.key AS `key`,
+    td.value AS value,
+    v3.created AS created
+FROM
+    t_version v1,
+    t_version v2,
+    t_version v3,
+    t_version v4,
+    t_instance i,
+    t_property p,
+    t_longtext t,
+    t_longtext_data td
+LEFT JOIN t_longtext_data td2 ON
+    (
+        td.longtext_uuid = td2.longtext_uuid AND
+        td.version_uuid < td2.version_uuid
+    )
+WHERE
+    td2.version_uuid IS NULL AND
+    t.uuid = td.longtext_uuid AND
+    t.instance_uuid = i.uuid AND
+    t.property_uuid = p.uuid AND
+    i.version_uuid = v1.uuid AND
+    p.version_uuid = v2.uuid AND
+    t.version_uuid = v3.uuid AND
+    td.version_uuid = v4.uuid AND
+    v1.active = TRUE AND
+    v2.active = TRUE AND
+    v3.active = TRUE AND
+    v4.active = TRUE;
+
+
+-- ---------------------------------------------------------------------------
+-- View v_uberlongtext_value
+--
+-- This value view represents the latest version of every active uberlongtext
+-- value record in the repository. This view should be primarily called by the 
+-- generic value view rather than directly.
+-- ---------------------------------------------------------------------------
+
+CREATE VIEW v_uberlongtext_value AS
+SELECT
+    hex(t.uuid) AS uuid,
+    hex(t.instance_uuid) AS instance_uuid,
+    hex(t.property_uuid) AS property_uuid,
+    td.key AS `key`,
+    td.value AS value,
+    v3.created AS created
+FROM
+    t_version v1,
+    t_version v2,
+    t_version v3,
+    t_version v4,
+    t_instance i,
+    t_property p,
+    t_uberlongtext t,
+    t_uberlongtext_data td
+LEFT JOIN t_uberlongtext_data td2 ON
+    (
+        td.uberlongtext_uuid = td2.uberlongtext_uuid AND
+        td.version_uuid < td2.version_uuid
+    )
+WHERE
+    td2.version_uuid IS NULL AND
+    t.uuid = td.uberlongtext_uuid AND
+    t.instance_uuid = i.uuid AND
+    t.property_uuid = p.uuid AND
+    i.version_uuid = v1.uuid AND
+    p.version_uuid = v2.uuid AND
+    t.version_uuid = v3.uuid AND
+    td.version_uuid = v4.uuid AND
+    v1.active = TRUE AND
+    v2.active = TRUE AND
+    v3.active = TRUE AND
+    v4.active = TRUE;
+
+
+-- ---------------------------------------------------------------------------
+-- View v_model_instance_value
+--
+-- This value view represents the latest version of every active model 
+-- instance value record in the repository. This view should be primarily 
+-- called by the generic value view rather than directly.
+-- ---------------------------------------------------------------------------
+
+CREATE VIEW v_model_instance_value AS
+SELECT
+    hex(mi.uuid) AS uuid,
+    hex(mi.instance_uuid) AS instance_uuid,
+    hex(mi.property_uuid) AS property_uuid,
+    mid.key AS `key`,
+    mid.model_uuid AS value_model_uuid,
+    mid.instance_uuid AS value_instance_uuid,
+    v3.created AS created
+FROM
+    t_version v1,
+    t_version v2,
+    t_version v3,
+    t_version v4,
+    t_version v5,
+    t_instance i,
+    t_property p,
+    t_model vm,
+    t_model_instance mi,
+    t_model_instance_data mid
+LEFT JOIN t_model_instance_data mid2 ON
+    (
+        mid.model_instance_uuid = mid2.model_instance_uuid AND
+        mid.version_uuid < mid2.version_uuid
+    )
+WHERE
+    mid2.version_uuid IS NULL AND
+    mi.uuid = mid.model_instance_uuid AND
+    mi.instance_uuid = i.uuid AND
+    mi.property_uuid = p.uuid AND
+    mid.model_uuid = vm.uuid AND
+    i.version_uuid = v1.uuid AND
+    p.version_uuid = v2.uuid AND
+    vm.version_uuid = v3.uuid AND
+    mi.version_uuid = v4.uuid AND
+    mid.version_uuid = v5.uuid AND
+    v1.active = TRUE AND
+    v2.active = TRUE AND
+    v3.active = TRUE AND
+    v4.active = TRUE AND
+    v5.active = TRUE;
+
 
 -- ---------------------------------------------------------------------------
 -- View v_value
@@ -1507,6 +2076,7 @@ WHERE
 -- directly. A value can be accessed indirectly by "instance_uuid" and 
 -- "property_uuid" then directly by "key" (if being used by the program).
 -- ---------------------------------------------------------------------------
+
 
 
 -- ---------------------------------------------------------------------------
