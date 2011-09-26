@@ -77,19 +77,6 @@ CREATE TABLE IF NOT EXISTS `t_version` (
     PRIMARY KEY (`uuid`) )
 ENGINE = InnoDB;
 
-delimiter ;;
-CREATE TRIGGER tr_before_version_insert BEFORE INSERT ON t_version
-FOR EACH ROW 
-    BEGIN
-        DECLARE new_uuid BINARY(16);
-        IF (NEW.uuid = 0) THEN
-            SET new_uuid = UNHEX(REPLACE(UUID(), '-', ''));
-            SET NEW.uuid = new_uuid;
-            SET @LAST_INSERT_UUID = new_uuid;
-        END IF;
-    END;;
-delimiter ;
-
 
 -- ---------------------------------------------------------------------------
 -- Table t_model
@@ -98,8 +85,8 @@ delimiter ;
 -- most commonly reflected in programmed code as a standard Class or Object.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_model` (
-    `uuid` BINARY(16) NOT NULL,
-    `version_uuid` BINARY(16) NOT NULL,
+    `uuid` BINARY(16) NOT NULL DEFAULT 0,
+    `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_model_version`
         FOREIGN KEY (`version_uuid` )
@@ -1423,6 +1410,7 @@ delimiter ;
 -- INSTEAD of querying data from the t_model and t_model_data tables directly.
 -- A model can be accessed directly by "uuid" or "name".
 -- ---------------------------------------------------------------------------
+
 
 
 -- ---------------------------------------------------------------------------
