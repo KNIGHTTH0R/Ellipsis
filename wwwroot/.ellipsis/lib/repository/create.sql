@@ -16,27 +16,6 @@ USE `repository`;
 
 
 -- ---------------------------------------------------------------------------
--- Function INIT_UUID(UUID)
---
--- Return the passed UUID as is unless it's empty, in which case create a new
--- UUID and return it. This function exists as a way to automate trigger 
--- created UUIDs without resetting existing UUIDs.
--- ---------------------------------------------------------------------------
-delimiter ;;
-CREATE FUNCTION INIT_UUID(p_uuid CHAR(36)) RETURNS CHAR(36)
-    DETERMINISTIC
-BEGIN
-    DECLARE result CHAR(36);
-    SET result = p_uuid;
-    IF p_uuid IS NULL OR p_uuid = '' THEN
-        SET result = UUID();
-    END IF;
-    RETURN result;
-END;;
-delimiter ;
-
-
--- ---------------------------------------------------------------------------
 -- Function NEW_VERSION()
 --
 -- Create a new repository version record and return it's ID. Every record in
@@ -44,11 +23,11 @@ delimiter ;
 -- function is triggered for every newly inserted table record.
 -- ---------------------------------------------------------------------------
 delimiter ;;
-CREATE FUNCTION NEW_VERSION() RETURNS CHAR(36)
+CREATE FUNCTION NEW_VERSION() RETURNS BINARY(16)
     DETERMINISTIC
 BEGIN
-    DECLARE new_uuid CHAR(36);
-    SET new_uuid = UUID();
+    DECLARE new_uuid BINARY(16);
+    SET new_uuid = UNHEX(REPLACE(UUID(), '-', ''));
     INSERT INTO t_version (uuid, tag) VALUES (new_uuid, '');
     RETURN new_uuid;
 END;;
@@ -91,7 +70,7 @@ delimiter ;
 -- ACTIVE=0.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_version` (
-    `uuid` CHAR(36) NOT NULL,
+    `uuid` BINARY(16) NOT NULL,
     `tag` VARCHAR(100) NULL DEFAULT NULL,
     `active` BIT(1) NOT NULL DEFAULT 1,
     `created` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -102,7 +81,12 @@ delimiter ;;
 CREATE TRIGGER tr_before_version_insert BEFORE INSERT ON t_version
 FOR EACH ROW 
     BEGIN
-        SET NEW.uuid = INIT_UUID(NEW.uuid);
+        DECLARE new_uuid BINARY(16);
+        IF (NEW.uuid = 0) THEN
+            SET new_uuid = UNHEX(REPLACE(UUID(), '-', ''));
+            SET NEW.uuid = new_uuid;
+            SET @LAST_INSERT_UUID = new_uuid;
+        END IF;
     END;;
 delimiter ;
 
@@ -114,8 +98,8 @@ delimiter ;
 -- most commonly reflected in programmed code as a standard Class or Object.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_model` (
-    `uuid` CHAR(36) NOT NULL,
-    `version_uuid` CHAR(36) NOT NULL,
+    `uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_model_version`
         FOREIGN KEY (`version_uuid` )
@@ -131,8 +115,13 @@ delimiter ;;
 CREATE TRIGGER tr_before_model_insert BEFORE INSERT ON t_model
 FOR EACH ROW 
     BEGIN
+        DECLARE new_uuid BINARY(16);
+        IF (NEW.uuid = 0) THEN
+            SET new_uuid = UNHEX(REPLACE(UUID(), '-', ''));
+            SET NEW.uuid = new_uuid;
+            SET @LAST_INSERT_UUID = new_uuid;
+        END IF;
         SET NEW.version_uuid = NEW_VERSION();
-        SET NEW.uuid = INIT_UUID(NEW.uuid);
     END;;
 delimiter ;
 
@@ -143,10 +132,10 @@ delimiter ;
 -- Each repository model has versionable name and description properties.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_model_data` (
-    `model_uuid` CHAR(36) NOT NULL,
+    `model_uuid` BINARY(16) NOT NULL,
     `name` VARCHAR(45) NOT NULL,
     `description` VARCHAR(255) NULL DEFAULT NULL,
-    `version_uuid` CHAR(36) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL,
     PRIMARY KEY (`model_uuid`, `version_uuid`),
     CONSTRAINT `fk_model_data_version`
         FOREIGN KEY (`version_uuid` )
@@ -181,9 +170,9 @@ delimiter ;
 -- in programmed code as standard Class or Object properties.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_property` (
-    `uuid` CHAR(36) NOT NULL,
-    `model_uuid` CHAR(36) NOT NULL,
-    `version_uuid` CHAR(36) NOT NULL,
+    `uuid` BINARY(16) NOT NULL,
+    `model_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_property_model`
         FOREIGN KEY (`model_uuid` )
@@ -205,8 +194,13 @@ delimiter ;;
 CREATE TRIGGER tr_before_property_insert BEFORE INSERT ON t_property
 FOR EACH ROW 
     BEGIN
+        DECLARE new_uuid BINARY(16);
+        IF (NEW.uuid = 0) THEN
+            SET new_uuid = UNHEX(REPLACE(UUID(), '-', ''));
+            SET NEW.uuid = new_uuid;
+            SET @LAST_INSERT_UUID = new_uuid;
+        END IF;
         SET NEW.version_uuid = NEW_VERSION();
-        SET NEW.uuid = INIT_UUID(NEW.uuid);
     END;;
 delimiter ;
 
@@ -232,7 +226,7 @@ delimiter ;
 -- database communications.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_property_data` (
-    `property_uuid` CHAR(36) NOT NULL,
+    `property_uuid` BINARY(16) NOT NULL,
     `name` VARCHAR(45) NOT NULL,
     `description` VARCHAR(255) NULL DEFAULT NULL,
     `type` ENUM('boolean','integer','double','datetime','binary','ascii','instance') NOT NULL,
@@ -245,7 +239,7 @@ CREATE TABLE IF NOT EXISTS `t_property_data` (
     `input_replace` VARCHAR(255) NULL DEFAULT NULL,
     `output_search` VARCHAR(255) NULL DEFAULT NULL,
     `output_replace` VARCHAR(255) NULL DEFAULT NULL,
-    `version_uuid` CHAR(36) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL,
     PRIMARY KEY (`property_uuid`, `version_uuid`),
     CONSTRAINT `fk_property_data_version`
         FOREIGN KEY (`version_uuid` )
@@ -285,9 +279,9 @@ delimiter ;
 -- versionable.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_instance` (
-    `uuid` CHAR(36) NOT NULL,
-    `model_uuid` CHAR(36) NOT NULL,
-    `version_uuid` CHAR(36) NOT NULL,
+    `uuid` BINARY(16) NOT NULL,
+    `model_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_instance_version`
         FOREIGN KEY (`version_uuid` )
@@ -309,8 +303,13 @@ delimiter ;;
 CREATE TRIGGER tr_before_instance_insert BEFORE INSERT ON t_instance
 FOR EACH ROW 
     BEGIN
+        DECLARE new_uuid BINARY(16);
+        IF (NEW.uuid = 0) THEN
+            SET new_uuid = UNHEX(REPLACE(UUID(), '-', ''));
+            SET NEW.uuid = new_uuid;
+            SET @LAST_INSERT_UUID = new_uuid;
+        END IF;
         SET NEW.version_uuid = NEW_VERSION();
-        SET NEW.uuid = INIT_UUID(NEW.uuid);
     END;;
 delimiter ;
 
@@ -322,10 +321,10 @@ delimiter ;
 -- a boolean record being created.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_boolean` (
-    `uuid` CHAR(36) NOT NULL,
-    `instance_uuid` CHAR(36) NOT NULL,
-    `property_uuid` CHAR(36) NOT NULL,
-    `version_uuid` CHAR(36) NOT NULL,
+    `uuid` BINARY(16) NOT NULL,
+    `instance_uuid` BINARY(16) NOT NULL,
+    `property_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_boolean_instance`
         FOREIGN KEY (`instance_uuid` )
@@ -353,8 +352,13 @@ delimiter ;;
 CREATE TRIGGER tr_before_boolean_insert BEFORE INSERT ON t_boolean
 FOR EACH ROW 
     BEGIN
+        DECLARE new_uuid BINARY(16);
+        IF (NEW.uuid = 0) THEN
+            SET new_uuid = UNHEX(REPLACE(UUID(), '-', ''));
+            SET NEW.uuid = new_uuid;
+            SET @LAST_INSERT_UUID = new_uuid;
+        END IF;
         SET NEW.version_uuid = NEW_VERSION();
-        SET NEW.uuid = INIT_UUID(NEW.uuid);
     END;;
 delimiter ;
 
@@ -376,10 +380,10 @@ delimiter ;
 -- value.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_boolean_data` (
-    `boolean_uuid` CHAR(36) NOT NULL,
+    `boolean_uuid` BINARY(16) NOT NULL,
     `key` VARCHAR(45) NULL,
     `value` BIT NOT NULL,
-    `version_uuid` CHAR(36) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL,
     CONSTRAINT `fk_boolean_data_version`
         FOREIGN KEY (`version_uuid` )
         REFERENCES `t_version` (`uuid` )
@@ -412,10 +416,10 @@ delimiter ;
 -- an integer record being created.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_integer` (
-    `uuid` CHAR(36) NOT NULL,
-    `instance_uuid` CHAR(36) NOT NULL,
-    `property_uuid` CHAR(36) NOT NULL,
-    `version_uuid` CHAR(36) NOT NULL,
+    `uuid` BINARY(16) NOT NULL,
+    `instance_uuid` BINARY(16) NOT NULL,
+    `property_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_integer_instance`
         FOREIGN KEY (`instance_uuid` )
@@ -443,8 +447,13 @@ delimiter ;;
 CREATE TRIGGER tr_before_integer_insert BEFORE INSERT ON t_integer
 FOR EACH ROW 
     BEGIN
+        DECLARE new_uuid BINARY(16);
+        IF (NEW.uuid = 0) THEN
+            SET new_uuid = UNHEX(REPLACE(UUID(), '-', ''));
+            SET NEW.uuid = new_uuid;
+            SET @LAST_INSERT_UUID = new_uuid;
+        END IF;
         SET NEW.version_uuid = NEW_VERSION();
-        SET NEW.uuid = INIT_UUID(NEW.uuid);
     END;;
 delimiter ;
 
@@ -460,10 +469,10 @@ delimiter ;
 -- Note: See boolean data description for key storage information.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_integer_data` (
-    `integer_uuid` CHAR(36) NOT NULL,
+    `integer_uuid` BINARY(16) NOT NULL,
     `key` VARCHAR(45) NULL,
     `value` INT NOT NULL DEFAULT 0,
-    `version_uuid` CHAR(36) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL,
     CONSTRAINT `fk_integer_data_version`
         FOREIGN KEY (`version_uuid` )
         REFERENCES `t_version` (`uuid` )
@@ -496,10 +505,10 @@ delimiter ;
 -- a double record being created.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_double` (
-    `uuid` CHAR(36) NOT NULL,
-    `instance_uuid` CHAR(36) NOT NULL,
-    `property_uuid` CHAR(36) NOT NULL,
-    `version_uuid` CHAR(36) NOT NULL,
+    `uuid` BINARY(16) NOT NULL,
+    `instance_uuid` BINARY(16) NOT NULL,
+    `property_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_double_instance`
         FOREIGN KEY (`instance_uuid` )
@@ -527,8 +536,13 @@ delimiter ;;
 CREATE TRIGGER tr_before_double_insert BEFORE INSERT ON t_double
 FOR EACH ROW 
     BEGIN
+        DECLARE new_uuid BINARY(16);
+        IF (NEW.uuid = 0) THEN
+            SET new_uuid = UNHEX(REPLACE(UUID(), '-', ''));
+            SET NEW.uuid = new_uuid;
+            SET @LAST_INSERT_UUID = new_uuid;
+        END IF;
         SET NEW.version_uuid = NEW_VERSION();
-        SET NEW.uuid = INIT_UUID(NEW.uuid);
     END;;
 delimiter ;
 
@@ -545,10 +559,10 @@ delimiter ;
 -- Note: See boolean data description for key storage information.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_double_data` (
-  `double_uuid` CHAR(36) NOT NULL,
+  `double_uuid` BINARY(16) NOT NULL,
   `key` VARCHAR(45) NULL,
   `value` DOUBLE NOT NULL DEFAULT 0.0,
-  `version_uuid` CHAR(36) NOT NULL,
+  `version_uuid` BINARY(16) NOT NULL,
   CONSTRAINT `fk_double_data_version`
     FOREIGN KEY (`version_uuid` )
     REFERENCES `t_version` (`uuid` )
@@ -581,10 +595,10 @@ delimiter ;
 -- a datetime record being created.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_datetime` (
-    `uuid` CHAR(36) NOT NULL,
-    `instance_uuid` CHAR(36) NOT NULL,
-    `property_uuid` CHAR(36) NOT NULL,
-    `version_uuid` CHAR(36) NOT NULL,
+    `uuid` BINARY(16) NOT NULL,
+    `instance_uuid` BINARY(16) NOT NULL,
+    `property_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_datetime_instance`
         FOREIGN KEY (`instance_uuid` )
@@ -612,8 +626,13 @@ delimiter ;;
 CREATE TRIGGER tr_before_datetime_insert BEFORE INSERT ON t_datetime
 FOR EACH ROW 
     BEGIN
+        DECLARE new_uuid BINARY(16);
+        IF (NEW.uuid = 0) THEN
+            SET new_uuid = UNHEX(REPLACE(UUID(), '-', ''));
+            SET NEW.uuid = new_uuid;
+            SET @LAST_INSERT_UUID = new_uuid;
+        END IF;
         SET NEW.version_uuid = NEW_VERSION();
-        SET NEW.uuid = INIT_UUID(NEW.uuid);
     END;;
 delimiter ;
 
@@ -632,10 +651,10 @@ delimiter ;
 -- Note: See boolean data description for key storage information.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_datetime_data` (
-    `datetime_uuid` CHAR(36) NOT NULL,
+    `datetime_uuid` BINARY(16) NOT NULL,
     `key` VARCHAR(45) NULL,
     `value` INT NOT NULL DEFAULT 0,
-    `version_uuid` CHAR(36) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL,
     CONSTRAINT `fk_datetime_data_version`
         FOREIGN KEY (`version_uuid` )
         REFERENCES `t_version` (`uuid` )
@@ -668,10 +687,10 @@ delimiter ;
 -- in a smallbinary record being created.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_smallbinary` (
-    `uuid` CHAR(36) NOT NULL,
-    `instance_uuid` CHAR(36) NOT NULL,
-    `property_uuid` CHAR(36) NOT NULL,
-    `version_uuid` CHAR(36) NOT NULL,
+    `uuid` BINARY(16) NOT NULL,
+    `instance_uuid` BINARY(16) NOT NULL,
+    `property_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_smallbinary_instance`
         FOREIGN KEY (`instance_uuid` )
@@ -699,8 +718,13 @@ delimiter ;;
 CREATE TRIGGER tr_before_smallbinary_insert BEFORE INSERT ON t_smallbinary
 FOR EACH ROW 
     BEGIN
+        DECLARE new_uuid BINARY(16);
+        IF (NEW.uuid = 0) THEN
+            SET new_uuid = UNHEX(REPLACE(UUID(), '-', ''));
+            SET NEW.uuid = new_uuid;
+            SET @LAST_INSERT_UUID = new_uuid;
+        END IF;
         SET NEW.version_uuid = NEW_VERSION();
-        SET NEW.uuid = INIT_UUID(NEW.uuid);
     END;;
 delimiter ;
 
@@ -717,10 +741,10 @@ delimiter ;
 -- Note: See boolean data description for key storage information.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_smallbinary_data` (
-    `smallbinary_uuid` CHAR(36) NOT NULL,
+    `smallbinary_uuid` BINARY(16) NOT NULL,
     `key` VARCHAR(45) NULL,
     `value` BLOB NULL,
-    `version_uuid` CHAR(36) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL,
     CONSTRAINT `fk_smallbinary_data_version`
         FOREIGN KEY (`version_uuid` )
         REFERENCES `t_version` (`uuid` )
@@ -753,10 +777,10 @@ delimiter ;
 -- results in a mediumbinary record being created.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_mediumbinary` (
-    `uuid` CHAR(36) NOT NULL,
-    `instance_uuid` CHAR(36) NOT NULL,
-    `property_uuid` CHAR(36) NOT NULL,
-    `version_uuid` CHAR(36) NOT NULL,
+    `uuid` BINARY(16) NOT NULL,
+    `instance_uuid` BINARY(16) NOT NULL,
+    `property_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_mediumbinary_version`
         FOREIGN KEY (`version_uuid` )
@@ -784,8 +808,13 @@ delimiter ;;
 CREATE TRIGGER tr_before_mediumbinary_insert BEFORE INSERT ON t_mediumbinary
 FOR EACH ROW 
     BEGIN
+        DECLARE new_uuid BINARY(16);
+        IF (NEW.uuid = 0) THEN
+            SET new_uuid = UNHEX(REPLACE(UUID(), '-', ''));
+            SET NEW.uuid = new_uuid;
+            SET @LAST_INSERT_UUID = new_uuid;
+        END IF;
         SET NEW.version_uuid = NEW_VERSION();
-        SET NEW.uuid = INIT_UUID(NEW.uuid);
     END;;
 delimiter ;
 
@@ -802,10 +831,10 @@ delimiter ;
 -- Note: See boolean data description for key storage information.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_mediumbinary_data` (
-    `mediumbinary_uuid` CHAR(36) NOT NULL,
+    `mediumbinary_uuid` BINARY(16) NOT NULL,
     `key` VARCHAR(45) NULL,
     `value` MEDIUMBLOB NULL,
-    `version_uuid` CHAR(36) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL,
     CONSTRAINT `fk_mediumbinary_data_mediumbinary`
         FOREIGN KEY (`mediumbinary_uuid` )
         REFERENCES `t_mediumbinary` (`uuid` )
@@ -838,10 +867,10 @@ delimiter ;
 -- in a longbinary record being created.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_longbinary` (
-    `uuid` CHAR(36) NOT NULL,
-    `instance_uuid` CHAR(36) NOT NULL,
-    `property_uuid` CHAR(36) NOT NULL,
-    `version_uuid` CHAR(36) NOT NULL,
+    `uuid` BINARY(16) NOT NULL,
+    `instance_uuid` BINARY(16) NOT NULL,
+    `property_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_longbinary_instance`
         FOREIGN KEY (`instance_uuid` )
@@ -869,8 +898,13 @@ delimiter ;;
 CREATE TRIGGER tr_before_longbinary_insert BEFORE INSERT ON t_longbinary
 FOR EACH ROW 
     BEGIN
+        DECLARE new_uuid BINARY(16);
+        IF (NEW.uuid = 0) THEN
+            SET new_uuid = UNHEX(REPLACE(UUID(), '-', ''));
+            SET NEW.uuid = new_uuid;
+            SET @LAST_INSERT_UUID = new_uuid;
+        END IF;
         SET NEW.version_uuid = NEW_VERSION();
-        SET NEW.uuid = INIT_UUID(NEW.uuid);
     END;;
 delimiter ;
 
@@ -887,10 +921,10 @@ delimiter ;
 -- Note: See boolean data description for key storage information.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_longbinary_data` (
-    `longbinary_uuid` CHAR(36) NOT NULL,
+    `longbinary_uuid` BINARY(16) NOT NULL,
     `key` VARCHAR(45) NULL,
     `value` LONGBLOB NULL,
-    `version_uuid` CHAR(36) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL,
     CONSTRAINT `fk_longbinary_data_longbinary`
         FOREIGN KEY (`longbinary_uuid` )
         REFERENCES `t_longbinary` (`uuid` )
@@ -923,10 +957,10 @@ delimiter ;
 -- in a smalltext record being created.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_smalltext` (
-    `uuid` CHAR(36) NOT NULL,
-    `instance_uuid` CHAR(36) NOT NULL,
-    `property_uuid` CHAR(36) NOT NULL,
-    `version_uuid` CHAR(36) NOT NULL,
+    `uuid` BINARY(16) NOT NULL,
+    `instance_uuid` BINARY(16) NOT NULL,
+    `property_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_smalltext_instance`
         FOREIGN KEY (`instance_uuid` )
@@ -954,8 +988,13 @@ delimiter ;;
 CREATE TRIGGER tr_before_smalltext_insert BEFORE INSERT ON t_smalltext
 FOR EACH ROW 
     BEGIN
+        DECLARE new_uuid BINARY(16);
+        IF (NEW.uuid = 0) THEN
+            SET new_uuid = UNHEX(REPLACE(UUID(), '-', ''));
+            SET NEW.uuid = new_uuid;
+            SET @LAST_INSERT_UUID = new_uuid;
+        END IF;
         SET NEW.version_uuid = NEW_VERSION();
-        SET NEW.uuid = INIT_UUID(NEW.uuid);
     END;;
 delimiter ;
 
@@ -972,10 +1011,10 @@ delimiter ;
 -- Note: See boolean data description for key storage information.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_smalltext_data` (
-    `smalltext_uuid` CHAR(36) NOT NULL,
+    `smalltext_uuid` BINARY(16) NOT NULL,
     `key` VARCHAR(45) NULL,
     `value` VARCHAR(1000) NULL,
-    `version_uuid` CHAR(36) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL,
     CONSTRAINT `fk_smalltext_data_version`
         FOREIGN KEY (`version_uuid` )
         REFERENCES `t_version` (`uuid` )
@@ -1008,10 +1047,10 @@ delimiter ;
 -- in a mediumtext record being created.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_mediumtext` (
-    `uuid` CHAR(36) NOT NULL,
-    `instance_uuid` CHAR(36) NOT NULL,
-    `property_uuid` CHAR(36) NOT NULL,
-    `version_uuid` CHAR(36) NOT NULL,
+    `uuid` BINARY(16) NOT NULL,
+    `instance_uuid` BINARY(16) NOT NULL,
+    `property_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_mediumtext_instance`
         FOREIGN KEY (`instance_uuid` )
@@ -1039,8 +1078,13 @@ delimiter ;;
 CREATE TRIGGER tr_before_mediumtext_insert BEFORE INSERT ON t_mediumtext
 FOR EACH ROW 
     BEGIN
+        DECLARE new_uuid BINARY(16);
+        IF (NEW.uuid = 0) THEN
+            SET new_uuid = UNHEX(REPLACE(UUID(), '-', ''));
+            SET NEW.uuid = new_uuid;
+            SET @LAST_INSERT_UUID = new_uuid;
+        END IF;
         SET NEW.version_uuid = NEW_VERSION();
-        SET NEW.uuid = INIT_UUID(NEW.uuid);
     END;;
 delimiter ;
 
@@ -1057,10 +1101,10 @@ delimiter ;
 -- Note: See boolean data description for key storage information.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_mediumtext_data` (
-    `mediumtext_uuid` CHAR(36) NOT NULL,
+    `mediumtext_uuid` BINARY(16) NOT NULL,
     `key` VARCHAR(45) NULL,
     `value` VARCHAR(4000) NULL,
-    `version_uuid` CHAR(36) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL,
     CONSTRAINT `fk_mediumtext_data_version`
         FOREIGN KEY (`version_uuid` )
         REFERENCES `t_version` (`uuid` )
@@ -1093,10 +1137,10 @@ delimiter ;
 -- in a longtext record being created.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_longtext` (
-    `uuid` CHAR(36) NOT NULL,
-    `instance_uuid` CHAR(36) NOT NULL,
-    `property_uuid` CHAR(36) NOT NULL,
-    `version_uuid` CHAR(36) NOT NULL,
+    `uuid` BINARY(16) NOT NULL,
+    `instance_uuid` BINARY(16) NOT NULL,
+    `property_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_longtext_instance`
         FOREIGN KEY (`instance_uuid` )
@@ -1124,8 +1168,13 @@ delimiter ;;
 CREATE TRIGGER tr_before_longtext_insert BEFORE INSERT ON t_longtext
 FOR EACH ROW 
     BEGIN
+        DECLARE new_uuid BINARY(16);
+        IF (NEW.uuid = 0) THEN
+            SET new_uuid = UNHEX(REPLACE(UUID(), '-', ''));
+            SET NEW.uuid = new_uuid;
+            SET @LAST_INSERT_UUID = new_uuid;
+        END IF;
         SET NEW.version_uuid = NEW_VERSION();
-        SET NEW.uuid = INIT_UUID(NEW.uuid);
     END;;
 delimiter ;
 
@@ -1142,10 +1191,10 @@ delimiter ;
 -- Note: See boolean data description for key storage information.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_longtext_data` (
-    `longtext_uuid` CHAR(36) NOT NULL,
+    `longtext_uuid` BINARY(16) NOT NULL,
     `key` VARCHAR(45) NULL,
     `value` TEXT NULL,
-    `version_uuid` CHAR(36) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL,
     CONSTRAINT `fk_longtext_data_longtext`
         FOREIGN KEY (`longtext_uuid` )
         REFERENCES `t_longtext` (`uuid` )
@@ -1178,10 +1227,10 @@ delimiter ;
 -- in a uberlongtext record being created.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_uberlongtext` (
-    `uuid` CHAR(36) NOT NULL,
-    `instance_uuid` CHAR(36) NOT NULL,
-    `property_uuid` CHAR(36) NOT NULL,
-    `version_uuid` CHAR(36) NOT NULL,
+    `uuid` BINARY(16) NOT NULL,
+    `instance_uuid` BINARY(16) NOT NULL,
+    `property_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_uberlongtext_instance`
         FOREIGN KEY (`instance_uuid` )
@@ -1209,8 +1258,13 @@ delimiter ;;
 CREATE TRIGGER tr_before_uberlongtext_insert BEFORE INSERT ON t_uberlongtext
 FOR EACH ROW 
     BEGIN
+        DECLARE new_uuid BINARY(16);
+        IF (NEW.uuid = 0) THEN
+            SET new_uuid = UNHEX(REPLACE(UUID(), '-', ''));
+            SET NEW.uuid = new_uuid;
+            SET @LAST_INSERT_UUID = new_uuid;
+        END IF;
         SET NEW.version_uuid = NEW_VERSION();
-        SET NEW.uuid = INIT_UUID(NEW.uuid);
     END;;
 delimiter ;
 
@@ -1227,10 +1281,10 @@ delimiter ;
 -- Note: See boolean data description for key storage information.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_uberlongtext_data` (
-    `uberlongtext_uuid` CHAR(36) NOT NULL,
+    `uberlongtext_uuid` BINARY(16) NOT NULL,
     `key` VARCHAR(45) NULL,
     `value` LONGTEXT NULL,
-    `version_uuid` CHAR(36) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL,
     CONSTRAINT `fk_uberlongtext_data_version`
         FOREIGN KEY (`version_uuid` )
         REFERENCES `t_version` (`uuid` )
@@ -1263,10 +1317,10 @@ delimiter ;
 -- a model_instance record being created.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_model_instance` (
-    `uuid` CHAR(36) NOT NULL,
-    `instance_uuid` CHAR(36) NOT NULL,
-    `property_uuid` CHAR(36) NOT NULL,
-    `version_uuid` CHAR(36) NOT NULL,
+    `uuid` BINARY(16) NOT NULL,
+    `instance_uuid` BINARY(16) NOT NULL,
+    `property_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_model_instance_instance`
         FOREIGN KEY (`instance_uuid` )
@@ -1294,8 +1348,13 @@ delimiter ;;
 CREATE TRIGGER tr_before_model_instance_insert BEFORE INSERT ON t_model_instance
 FOR EACH ROW 
     BEGIN
+        DECLARE new_uuid BINARY(16);
+        IF (NEW.uuid = 0) THEN
+            SET new_uuid = UNHEX(REPLACE(UUID(), '-', ''));
+            SET NEW.uuid = new_uuid;
+            SET @LAST_INSERT_UUID = new_uuid;
+        END IF;
         SET NEW.version_uuid = NEW_VERSION();
-        SET NEW.uuid = INIT_UUID(NEW.uuid);
     END;;
 delimiter ;
 
@@ -1314,11 +1373,11 @@ delimiter ;
 -- Note: See boolean data description for key storage information.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_model_instance_data` (
-    `model_instance_uuid` CHAR(36) NOT NULL,
+    `model_instance_uuid` BINARY(16) NOT NULL,
     `key` VARCHAR(45) NULL,
-    `model_uuid` CHAR(36) NOT NULL,
-    `instance_uuid` CHAR(36) NULL,
-    `version_uuid` CHAR(36) NOT NULL,
+    `model_uuid` BINARY(16) NOT NULL,
+    `instance_uuid` BINARY(16) NULL,
+    `version_uuid` BINARY(16) NOT NULL,
     CONSTRAINT `fk_model_instance_data_version`
         FOREIGN KEY (`version_uuid` )
         REFERENCES `t_version` (`uuid` )
