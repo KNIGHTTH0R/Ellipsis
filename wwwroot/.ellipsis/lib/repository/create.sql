@@ -122,7 +122,7 @@ CREATE TABLE IF NOT EXISTS `t_model_data` (
     `model_uuid` BINARY(16) NOT NULL,
     `name` VARCHAR(45) NOT NULL,
     `description` VARCHAR(255) NULL DEFAULT NULL,
-    `version_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
     PRIMARY KEY (`model_uuid`, `version_uuid`),
     CONSTRAINT `fk_model_data_version`
         FOREIGN KEY (`version_uuid` )
@@ -157,9 +157,9 @@ delimiter ;
 -- in programmed code as standard Class or Object properties.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_property` (
-    `uuid` BINARY(16) NOT NULL,
+    `uuid` BINARY(16) NOT NULL DEFAULT 0,
     `model_uuid` BINARY(16) NOT NULL,
-    `version_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_property_model`
         FOREIGN KEY (`model_uuid` )
@@ -226,7 +226,7 @@ CREATE TABLE IF NOT EXISTS `t_property_data` (
     `input_replace` VARCHAR(255) NULL DEFAULT NULL,
     `output_search` VARCHAR(255) NULL DEFAULT NULL,
     `output_replace` VARCHAR(255) NULL DEFAULT NULL,
-    `version_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
     PRIMARY KEY (`property_uuid`, `version_uuid`),
     CONSTRAINT `fk_property_data_version`
         FOREIGN KEY (`version_uuid` )
@@ -266,9 +266,9 @@ delimiter ;
 -- versionable.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_instance` (
-    `uuid` BINARY(16) NOT NULL,
+    `uuid` BINARY(16) NOT NULL DEFAULT 0,
     `model_uuid` BINARY(16) NOT NULL,
-    `version_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_instance_version`
         FOREIGN KEY (`version_uuid` )
@@ -308,10 +308,10 @@ delimiter ;
 -- a boolean record being created.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_boolean` (
-    `uuid` BINARY(16) NOT NULL,
+    `uuid` BINARY(16) NOT NULL DEFAULT 0,
     `instance_uuid` BINARY(16) NOT NULL,
     `property_uuid` BINARY(16) NOT NULL,
-    `version_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_boolean_instance`
         FOREIGN KEY (`instance_uuid` )
@@ -370,7 +370,7 @@ CREATE TABLE IF NOT EXISTS `t_boolean_data` (
     `boolean_uuid` BINARY(16) NOT NULL,
     `key` VARCHAR(45) NULL,
     `value` BIT NOT NULL,
-    `version_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
     CONSTRAINT `fk_boolean_data_version`
         FOREIGN KEY (`version_uuid` )
         REFERENCES `t_version` (`uuid` )
@@ -403,10 +403,10 @@ delimiter ;
 -- an integer record being created.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_integer` (
-    `uuid` BINARY(16) NOT NULL,
+    `uuid` BINARY(16) NOT NULL DEFAULT 0,
     `instance_uuid` BINARY(16) NOT NULL,
     `property_uuid` BINARY(16) NOT NULL,
-    `version_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_integer_instance`
         FOREIGN KEY (`instance_uuid` )
@@ -459,7 +459,7 @@ CREATE TABLE IF NOT EXISTS `t_integer_data` (
     `integer_uuid` BINARY(16) NOT NULL,
     `key` VARCHAR(45) NULL,
     `value` INT NOT NULL DEFAULT 0,
-    `version_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
     CONSTRAINT `fk_integer_data_version`
         FOREIGN KEY (`version_uuid` )
         REFERENCES `t_version` (`uuid` )
@@ -492,10 +492,10 @@ delimiter ;
 -- a double record being created.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_double` (
-    `uuid` BINARY(16) NOT NULL,
+    `uuid` BINARY(16) NOT NULL DEFAULT 0,
     `instance_uuid` BINARY(16) NOT NULL,
     `property_uuid` BINARY(16) NOT NULL,
-    `version_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_double_instance`
         FOREIGN KEY (`instance_uuid` )
@@ -549,7 +549,7 @@ CREATE TABLE IF NOT EXISTS `t_double_data` (
   `double_uuid` BINARY(16) NOT NULL,
   `key` VARCHAR(45) NULL,
   `value` DOUBLE NOT NULL DEFAULT 0.0,
-  `version_uuid` BINARY(16) NOT NULL,
+  `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
   CONSTRAINT `fk_double_data_version`
     FOREIGN KEY (`version_uuid` )
     REFERENCES `t_version` (`uuid` )
@@ -582,10 +582,10 @@ delimiter ;
 -- a datetime record being created.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_datetime` (
-    `uuid` BINARY(16) NOT NULL,
+    `uuid` BINARY(16) NOT NULL DEFAULT 0,
     `instance_uuid` BINARY(16) NOT NULL,
     `property_uuid` BINARY(16) NOT NULL,
-    `version_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_datetime_instance`
         FOREIGN KEY (`instance_uuid` )
@@ -641,7 +641,7 @@ CREATE TABLE IF NOT EXISTS `t_datetime_data` (
     `datetime_uuid` BINARY(16) NOT NULL,
     `key` VARCHAR(45) NULL,
     `value` INT NOT NULL DEFAULT 0,
-    `version_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
     CONSTRAINT `fk_datetime_data_version`
         FOREIGN KEY (`version_uuid` )
         REFERENCES `t_version` (`uuid` )
@@ -674,10 +674,10 @@ delimiter ;
 -- in a smallbinary record being created.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_smallbinary` (
-    `uuid` BINARY(16) NOT NULL,
+    `uuid` BINARY(16) NOT NULL DEFAULT 0,
     `instance_uuid` BINARY(16) NOT NULL,
     `property_uuid` BINARY(16) NOT NULL,
-    `version_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_smallbinary_instance`
         FOREIGN KEY (`instance_uuid` )
@@ -731,7 +731,7 @@ CREATE TABLE IF NOT EXISTS `t_smallbinary_data` (
     `smallbinary_uuid` BINARY(16) NOT NULL,
     `key` VARCHAR(45) NULL,
     `value` BLOB NULL,
-    `version_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
     CONSTRAINT `fk_smallbinary_data_version`
         FOREIGN KEY (`version_uuid` )
         REFERENCES `t_version` (`uuid` )
@@ -764,10 +764,10 @@ delimiter ;
 -- results in a mediumbinary record being created.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_mediumbinary` (
-    `uuid` BINARY(16) NOT NULL,
+    `uuid` BINARY(16) NOT NULL DEFAULT 0,
     `instance_uuid` BINARY(16) NOT NULL,
     `property_uuid` BINARY(16) NOT NULL,
-    `version_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_mediumbinary_version`
         FOREIGN KEY (`version_uuid` )
@@ -821,7 +821,7 @@ CREATE TABLE IF NOT EXISTS `t_mediumbinary_data` (
     `mediumbinary_uuid` BINARY(16) NOT NULL,
     `key` VARCHAR(45) NULL,
     `value` MEDIUMBLOB NULL,
-    `version_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
     CONSTRAINT `fk_mediumbinary_data_mediumbinary`
         FOREIGN KEY (`mediumbinary_uuid` )
         REFERENCES `t_mediumbinary` (`uuid` )
@@ -854,10 +854,10 @@ delimiter ;
 -- in a longbinary record being created.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_longbinary` (
-    `uuid` BINARY(16) NOT NULL,
+    `uuid` BINARY(16) NOT NULL DEFAULT 0,
     `instance_uuid` BINARY(16) NOT NULL,
     `property_uuid` BINARY(16) NOT NULL,
-    `version_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_longbinary_instance`
         FOREIGN KEY (`instance_uuid` )
@@ -911,7 +911,7 @@ CREATE TABLE IF NOT EXISTS `t_longbinary_data` (
     `longbinary_uuid` BINARY(16) NOT NULL,
     `key` VARCHAR(45) NULL,
     `value` LONGBLOB NULL,
-    `version_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
     CONSTRAINT `fk_longbinary_data_longbinary`
         FOREIGN KEY (`longbinary_uuid` )
         REFERENCES `t_longbinary` (`uuid` )
@@ -944,10 +944,10 @@ delimiter ;
 -- in a smalltext record being created.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_smalltext` (
-    `uuid` BINARY(16) NOT NULL,
+    `uuid` BINARY(16) NOT NULL DEFAULT 0,
     `instance_uuid` BINARY(16) NOT NULL,
     `property_uuid` BINARY(16) NOT NULL,
-    `version_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_smalltext_instance`
         FOREIGN KEY (`instance_uuid` )
@@ -1001,7 +1001,7 @@ CREATE TABLE IF NOT EXISTS `t_smalltext_data` (
     `smalltext_uuid` BINARY(16) NOT NULL,
     `key` VARCHAR(45) NULL,
     `value` VARCHAR(1000) NULL,
-    `version_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
     CONSTRAINT `fk_smalltext_data_version`
         FOREIGN KEY (`version_uuid` )
         REFERENCES `t_version` (`uuid` )
@@ -1034,10 +1034,10 @@ delimiter ;
 -- in a mediumtext record being created.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_mediumtext` (
-    `uuid` BINARY(16) NOT NULL,
+    `uuid` BINARY(16) NOT NULL DEFAULT 0,
     `instance_uuid` BINARY(16) NOT NULL,
     `property_uuid` BINARY(16) NOT NULL,
-    `version_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_mediumtext_instance`
         FOREIGN KEY (`instance_uuid` )
@@ -1091,7 +1091,7 @@ CREATE TABLE IF NOT EXISTS `t_mediumtext_data` (
     `mediumtext_uuid` BINARY(16) NOT NULL,
     `key` VARCHAR(45) NULL,
     `value` VARCHAR(4000) NULL,
-    `version_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
     CONSTRAINT `fk_mediumtext_data_version`
         FOREIGN KEY (`version_uuid` )
         REFERENCES `t_version` (`uuid` )
@@ -1124,10 +1124,10 @@ delimiter ;
 -- in a longtext record being created.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_longtext` (
-    `uuid` BINARY(16) NOT NULL,
+    `uuid` BINARY(16) NOT NULL DEFAULT 0,
     `instance_uuid` BINARY(16) NOT NULL,
     `property_uuid` BINARY(16) NOT NULL,
-    `version_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_longtext_instance`
         FOREIGN KEY (`instance_uuid` )
@@ -1181,7 +1181,7 @@ CREATE TABLE IF NOT EXISTS `t_longtext_data` (
     `longtext_uuid` BINARY(16) NOT NULL,
     `key` VARCHAR(45) NULL,
     `value` TEXT NULL,
-    `version_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
     CONSTRAINT `fk_longtext_data_longtext`
         FOREIGN KEY (`longtext_uuid` )
         REFERENCES `t_longtext` (`uuid` )
@@ -1214,10 +1214,10 @@ delimiter ;
 -- in a uberlongtext record being created.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_uberlongtext` (
-    `uuid` BINARY(16) NOT NULL,
+    `uuid` BINARY(16) NOT NULL DEFAULT 0,
     `instance_uuid` BINARY(16) NOT NULL,
     `property_uuid` BINARY(16) NOT NULL,
-    `version_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_uberlongtext_instance`
         FOREIGN KEY (`instance_uuid` )
@@ -1271,7 +1271,7 @@ CREATE TABLE IF NOT EXISTS `t_uberlongtext_data` (
     `uberlongtext_uuid` BINARY(16) NOT NULL,
     `key` VARCHAR(45) NULL,
     `value` LONGTEXT NULL,
-    `version_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
     CONSTRAINT `fk_uberlongtext_data_version`
         FOREIGN KEY (`version_uuid` )
         REFERENCES `t_version` (`uuid` )
@@ -1304,10 +1304,10 @@ delimiter ;
 -- a model_instance record being created.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `t_model_instance` (
-    `uuid` BINARY(16) NOT NULL,
+    `uuid` BINARY(16) NOT NULL DEFAULT 0,
     `instance_uuid` BINARY(16) NOT NULL,
     `property_uuid` BINARY(16) NOT NULL,
-    `version_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
     PRIMARY KEY (`uuid`, `version_uuid`),
     CONSTRAINT `fk_model_instance_instance`
         FOREIGN KEY (`instance_uuid` )
@@ -1364,7 +1364,7 @@ CREATE TABLE IF NOT EXISTS `t_model_instance_data` (
     `key` VARCHAR(45) NULL,
     `model_uuid` BINARY(16) NOT NULL,
     `instance_uuid` BINARY(16) NULL,
-    `version_uuid` BINARY(16) NOT NULL,
+    `version_uuid` BINARY(16) NOT NULL DEFAULT 0,
     CONSTRAINT `fk_model_instance_data_version`
         FOREIGN KEY (`version_uuid` )
         REFERENCES `t_version` (`uuid` )
@@ -1411,6 +1411,29 @@ delimiter ;
 -- A model can be accessed directly by "uuid" or "name".
 -- ---------------------------------------------------------------------------
 
+CREATE VIEW v_model AS
+SELECT
+    hex(m.uuid) AS uuid,
+    md.name AS name,
+    md.description AS description,
+    v2.created AS created
+FROM
+    t_version v1,
+    t_version v2,
+    t_model m,
+    t_model_data md
+LEFT JOIN t_model_data md2 ON
+    (
+        md.model_uuid = md2.model_uuid AND
+        md.version_uuid < md2.version_uuid
+    )
+WHERE
+    md2.version_uuid IS NULL AND
+    m.uuid = md.model_uuid AND
+    m.version_uuid = v1.uuid AND
+    md.version_uuid = v2.uuid AND
+    v1.active = TRUE AND
+    v2.active = TRUE;
 
 
 -- ---------------------------------------------------------------------------
@@ -1422,6 +1445,46 @@ delimiter ;
 -- tables directly. A property can be accessed indirectly by "model_uuid" and
 -- then directly by "uuid" or "name".
 -- ---------------------------------------------------------------------------
+
+CREATE VIEW v_property AS
+SELECT
+    hex(p.uuid) AS uuid,
+    hex(p.model_uuid) AS model_uuid,
+    pd.name AS name,
+    pd.description AS description,
+    pd.type AS type,
+    pd.mincount AS mincount,
+    pd.maxcount AS maxcount,
+    pd.minlength AS minlength,
+    pd.maxlength AS maxlength,
+    pd.validation AS validation,
+    pd.input_search AS input_search,
+    pd.input_replace AS input_replace,
+    pd.output_search AS output_search,
+    pd.output_replace AS output_replace,
+    v3.created AS created
+FROM
+    t_version v1,
+    t_version v2,
+    t_version v3,
+    t_model m,
+    t_property p,
+    t_property_data pd
+LEFT JOIN t_property_data pd2 ON
+    (
+        pd.property_uuid = pd2.property_uuid AND
+        pd.version_uuid < pd2.version_uuid
+    )
+WHERE
+    pd2.version_uuid IS NULL AND
+    p.uuid = pd.property_uuid AND
+    p.model_uuid = m.uuid AND
+    m.version_uuid = v1.uuid AND
+    p.version_uuid = v2.uuid AND
+    pd.version_uuid = v3.uuid AND
+    v1.active = TRUE AND
+    v2.active = TRUE AND
+    v3.active = TRUE;
 
 
 -- ---------------------------------------------------------------------------
