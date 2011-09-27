@@ -61,6 +61,132 @@ delimiter ;
 
 
 -- ---------------------------------------------------------------------------
+-- Function GET_VALUE_TABLE(INSTANCE_UUID, PROPERTY_UUID, TYPE)
+--
+-- Get the name of the table that the passed uuids and type correspond to so
+-- that the proper value can be queried by a view and cached in memory. See
+-- the views that use this function for examples.
+-- ---------------------------------------------------------------------------
+delimiter ;;
+CREATE FUNCTION GET_VALUE_TABLE(p_instance_uuid BINARY(16), p_property_uuid BINARY(16), p_type VARCHAR(20)) RETURNS VARCHAR(20)
+    DETERMINISTIC
+BEGIN
+    IF p_type = 'boolean' OR p_type = 'integer' OR p_type = 'double' OR p_type = 'datetime' OR p_type = 'instance' THEN
+        RETURN CONCAT('t_', p_type);
+    ELSE
+        IF p_type = 'ascii' THEN
+            SET @smalltext_uuid = (
+                SELECT 
+                    version_uuid 
+                FROM 
+                    v_smalltext_value 
+                WHERE 
+                    instance_uuid = p_instance_uuid AND 
+                    property_uuid = p_property_uuid 
+                ORDER BY 
+                    1 ASC
+            );
+            SET @mediumtext_uuid = (
+                SELECT 
+                    version_uuid 
+                FROM 
+                    v_mediumtext_value 
+                WHERE 
+                    instance_uuid = p_instance_uuid AND 
+                    property_uuid = p_property_uuid 
+                ORDER BY 
+                    1 ASC
+            );
+            SET @longtext_uuid = (
+                SELECT 
+                    version_uuid 
+                FROM 
+                    v_longtext_value 
+                WHERE 
+                    instance_uuid = p_instance_uuid AND 
+                    property_uuid = p_property_uuid 
+                ORDER BY 
+                    1 ASC
+            );
+            SET @uberlongtext_uuid = (
+                SELECT 
+                    version_uuid 
+                FROM 
+                    v_uberlongtext_value 
+                WHERE 
+                    instance_uuid = p_instance_uuid AND 
+                    property_uuid = p_property_uuid 
+                ORDER BY 
+                    1 ASC
+            );
+            SET @text_uuid = (
+                SELECT 
+                    MAX(n.uuid)
+                FROM 
+                    (
+                        (SELECT 0 as uuid) UNION
+                        (SELECT @smalltext_uuid as uuid) UNION
+                        (SELECT @mediumtext_uuid as uuid) UNION
+                        (SELECT @longtext_uuid as uuid) UNION
+                        (SELECT @uberlongtext_uuid as uuid)
+                    ) AS n
+                WHERE 
+                    1
+                ORDER BY
+                    1 ASC
+            );
+            IF @text_uuid = @smalltext_uuid AND @smalltext_uuid > 0 THEN
+                RETURN 't_smalltext';
+            ELSEIF @text_uuid = @mediumtext_uuid AND @mediumtext_uuid > 0 THEN
+                RETURN 't_mediumtext';
+            ELSEIF @text_uuid = @longtext_uuid AND @longtext_uuid > 0 THEN
+                RETURN 't_longtext';
+            ELSEIF @text_uuid = @uberlongtext_uuid AND @uberlongtext_uuid > 0 THEN
+                RETURN 't_uberlongtext';
+            ELSE
+                RETURN 't_smalltext';
+            END IF;
+        ELSEIF p_type = 'binary' THEN
+            RETURN 't_smallbinary';
+        END IF;
+    END IF;
+END;;
+delimiter ;
+
+
+-- ---------------------------------------------------------------------------
+-- Function GET_VALUE_DATA_TABLE(INSTANCE_UUID, PROPERTY_UUID, TYPE)
+--
+-- Get the name of the data table that the passed uuids and type correspond to 
+-- so that the proper value can be queried by a view and cached in memory. See
+-- the views that use this function for examples.
+-- ---------------------------------------------------------------------------
+delimiter ;;
+CREATE FUNCTION GET_VALUE_DATA_TABLE(p_instance_uuid BINARY(16), p_property_uuid BINARY(16), p_type VARCHAR(20)) RETURNS VARCHAR(20)
+    DETERMINISTIC
+BEGIN
+    RETURN(CONCAT(GET_VALUE_TABLE(p_instance_uuid, p_property_uuid, p_type), '_data'));
+END;;
+delimiter ;
+
+
+-- ---------------------------------------------------------------------------
+-- Function GET_VALUE_DATA_KEY(INSTANCE_UUID, PROPERTY_UUID, TYPE)
+--
+-- Get the name of the data table key column that the passed uuids and type 
+-- correspond to so that the proper value can be queried by a view and cached 
+-- in memory. See the views that use this function for examples.
+-- ---------------------------------------------------------------------------
+delimiter ;;
+CREATE FUNCTION GET_VALUE_DATA_KEY(p_instance_uuid BINARY(16), p_property_uuid BINARY(16), p_type VARCHAR(20)) RETURNS VARCHAR(20)
+    DETERMINISTIC
+BEGIN
+    RETURN(CONCAT(GET_VALUE_TABLE(p_instance_uuid, p_property_uuid, p_type), '_data'));
+END;;
+delimiter ;
+
+
+-- ---------------------------------------------------------------------------
 -- Table t_version
 --
 -- Each repository record is associated with a unique version number. No 
@@ -1536,7 +1662,11 @@ SELECT
     hex(b.property_uuid) AS property_uuid,
     bd.key AS `key`,
     bd.value AS value,
-    v3.created AS created
+    NULL AS value_model_uuid,
+    NULL AS value_instance_uuid,
+    hex(v4.uuid) AS version_uuid,
+    v3.created AS created,
+    v4.created AS modified
 FROM
     t_version v1,
     t_version v2,
@@ -1581,7 +1711,11 @@ SELECT
     hex(n.property_uuid) AS property_uuid,
     nd.key AS `key`,
     nd.value AS value,
-    v3.created AS created
+    NULL AS value_model_uuid,
+    NULL AS value_instance_uuid,
+    hex(v4.uuid) AS version_uuid,
+    v3.created AS created,
+    v4.created AS modified
 FROM
     t_version v1,
     t_version v2,
@@ -1626,7 +1760,11 @@ SELECT
     hex(d.property_uuid) AS property_uuid,
     dd.key AS `key`,
     dd.value AS value,
-    v3.created AS created
+    NULL AS value_model_uuid,
+    NULL AS value_instance_uuid,
+    hex(v4.uuid) AS version_uuid,
+    v3.created AS created,
+    v4.created AS modified
 FROM
     t_version v1,
     t_version v2,
@@ -1671,7 +1809,11 @@ SELECT
     hex(t.property_uuid) AS property_uuid,
     td.key AS `key`,
     td.value AS value,
-    v3.created AS created
+    NULL AS value_model_uuid,
+    NULL AS value_instance_uuid,
+    hex(v4.uuid) AS version_uuid,
+    v3.created AS created,
+    v4.created AS modified
 FROM
     t_version v1,
     t_version v2,
@@ -1716,7 +1858,11 @@ SELECT
     hex(b.property_uuid) AS property_uuid,
     bd.key AS `key`,
     bd.value AS value,
-    v3.created AS created
+    NULL AS value_model_uuid,
+    NULL AS value_instance_uuid,
+    hex(v4.uuid) AS version_uuid,
+    v3.created AS created,
+    v4.created AS modified
 FROM
     t_version v1,
     t_version v2,
@@ -1761,7 +1907,11 @@ SELECT
     hex(b.property_uuid) AS property_uuid,
     bd.key AS `key`,
     bd.value AS value,
-    v3.created AS created
+    NULL AS value_model_uuid,
+    NULL AS value_instance_uuid,
+    hex(v4.uuid) AS version_uuid,
+    v3.created AS created,
+    v4.created AS modified
 FROM
     t_version v1,
     t_version v2,
@@ -1806,7 +1956,11 @@ SELECT
     hex(b.property_uuid) AS property_uuid,
     bd.key AS `key`,
     bd.value AS value,
-    v3.created AS created
+    NULL AS value_model_uuid,
+    NULL AS value_instance_uuid,
+    hex(v4.uuid) AS version_uuid,
+    v3.created AS created,
+    v4.created AS modified
 FROM
     t_version v1,
     t_version v2,
@@ -1851,7 +2005,11 @@ SELECT
     hex(t.property_uuid) AS property_uuid,
     td.key AS `key`,
     td.value AS value,
-    v3.created AS created
+    NULL AS value_model_uuid,
+    NULL AS value_instance_uuid,
+    hex(v4.uuid) AS version_uuid,
+    v3.created AS created,
+    v4.created AS modified
 FROM
     t_version v1,
     t_version v2,
@@ -1896,7 +2054,11 @@ SELECT
     hex(t.property_uuid) AS property_uuid,
     td.key AS `key`,
     td.value AS value,
-    v3.created AS created
+    NULL AS value_model_uuid,
+    NULL AS value_instance_uuid,
+    hex(v4.uuid) AS version_uuid,
+    v3.created AS created,
+    v4.created AS modified
 FROM
     t_version v1,
     t_version v2,
@@ -1941,7 +2103,11 @@ SELECT
     hex(t.property_uuid) AS property_uuid,
     td.key AS `key`,
     td.value AS value,
-    v3.created AS created
+    NULL AS value_model_uuid,
+    NULL AS value_instance_uuid,
+    hex(v4.uuid) AS version_uuid,
+    v3.created AS created,
+    v4.created AS modified
 FROM
     t_version v1,
     t_version v2,
@@ -1986,7 +2152,11 @@ SELECT
     hex(t.property_uuid) AS property_uuid,
     td.key AS `key`,
     td.value AS value,
-    v3.created AS created
+    NULL AS value_model_uuid,
+    NULL AS value_instance_uuid,
+    hex(v4.uuid) AS version_uuid,
+    v3.created AS created,
+    v4.created AS modified
 FROM
     t_version v1,
     t_version v2,
@@ -2030,9 +2200,12 @@ SELECT
     hex(mi.instance_uuid) AS instance_uuid,
     hex(mi.property_uuid) AS property_uuid,
     mid.key AS `key`,
+    NULL AS value,
     mid.model_uuid AS value_model_uuid,
     mid.instance_uuid AS value_instance_uuid,
-    v3.created AS created
+    hex(v5.uuid) AS version_uuid,
+    v4.created AS created,
+    v5.created AS modified
 FROM
     t_version v1,
     t_version v2,
@@ -2077,6 +2250,44 @@ WHERE
 -- "property_uuid" then directly by "key" (if being used by the program).
 -- ---------------------------------------------------------------------------
 
+CREATE VIEW v_value AS
+SELECT
+    v.uuid AS uuid,
+    v.instance_uuid AS instance_uuid,
+    v.property_uuid AS property_uuid,
+    vd.key AS `key`,
+    vd.value AS value,
+    vd.value_model_uuid AS value_model_uuid,
+    vd.value_instance_uuid AS value_instance_uuid,
+    v4.version_uuid AS version_uuid,
+    v3.created AS created,
+    v4.created AS modified
+FROM
+    t_version v1,
+    t_version v2,
+    t_version v3,
+    t_version v4,
+    v_property p,
+    GET_VALUE_TABLE(v.instance_uuid, v.property_uuid, p.type) AS v,
+    GET_VALUE_DATA_TABLE(v.instance_uuid, v.property_uuid, p.type) AS vd
+LEFT JOIN GET_VALUE_DATA_TABLE(v.instance_uuid, v.property_uuid, p.type) vd2 ON
+    (
+        vd.GET_VALUE_DATA_KEY(v.instance_uuid, v.property_uuid, p.type) = vd2.GET_VALUE_DATA_KEY(v.instance_uuid, v.property_uuid, p.type) AND
+        vd.version_uuid < vd2.version_uuid
+    )
+WHERE
+    vd2.version_uuid IS NULL AND
+    v.uuid = vd.*_uuid AND
+    v.instance_uuid = i.uuid AND
+    v.property_uuid = p.uuid AND
+    i.version_uuid = v1.uuid AND
+    p.version_uuid = v2.uuid AND
+    b.version_uuid = v3.uuid AND
+    vd.version_uuid = v4.uuid AND
+    v1.active = TRUE AND
+    v2.active = TRUE AND
+    v3.active = TRUE AND
+    v4.active = TRUE;
 
 
 -- ---------------------------------------------------------------------------
