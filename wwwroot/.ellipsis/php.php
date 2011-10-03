@@ -14,12 +14,16 @@
  * @return void
  */
 function ellipsis_autoload($class_name){
+    if (!isset($_ENV['AUTOLOAD'])){
+        $_ENV['AUTOLOAD'] = array();
+    }
     if (preg_match('/^[a-z]+$/i', $class_name)){
         // first try to load from the application library
         foreach($_ENV['APPS'] as $name => $app){
             if (is_dir($app['SCRIPT_LIB'])){
                 $path = $app['SCRIPT_LIB'] . '/' . strtolower($class_name) . '.php';
                 if (is_file($path)){
+                    $_ENV['AUTOLOAD'][] = $name . '::' . strtolower($class_name);
                     require $path;
                     return;
                 }
@@ -29,6 +33,7 @@ function ellipsis_autoload($class_name){
         // second try to load from the framework library
         $path = $_ENV['SCRIPT_LIB'] . '/' . strtolower($class_name) . '.php';
         if (is_file($path)){
+            $_ENV['AUTOLOAD'][] = strtolower($class_name);
             require $path;
         }
     }
@@ -425,32 +430,5 @@ function hexascii($hex){
         $ascii .= chr(hexdec(substr($hex, $i, 2)));
     }
     return $ascii;
-}
-
-/**
- * determine if passed value is a binary string
- *
- * @param string $string
- * @return boolean
- */
-function is_binary($string){
-    return (
-        0 or 
-        (substr_count($string, "^ -~", "^\r\n")/512 > 0.3) or 
-        (substr_count($string, "\x00") > 0)
-    );
-}
-
-/**
- * determine if passed value is a mysql compatible uuid
- *
- * @param string $uuid
- * @return boolean
- */
-function is_mysql_uuid($uuid){
-    if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/', $uuid)){
-        return true;
-    }
-    return false;
 }
 
