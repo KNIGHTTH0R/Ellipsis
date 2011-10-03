@@ -62,6 +62,10 @@ class HTTP {
     public static function get($uri, $headers=null, $cookies=null, $proxy=null){
         $options = null;
 
+        if ($_ENV['DEBUG_PROXY'] && $_ENV['DEBUG_PROXY'] != '' && $proxy == null){
+            $proxy = $_ENV['DEBUG_PROXY'];
+        }
+
         // build proxy (if applicable)
         if ($proxy != null && preg_match('/^([^:]+):(.*)$/', $proxy, $matches)){
             $options = array(
@@ -91,6 +95,10 @@ class HTTP {
     public static function post($uri, $data=null, $headers=null, $cookies=null, $proxy=null){
         $options = null;
 
+        if ($_ENV['DEBUG_PROXY'] && $_ENV['DEBUG_PROXY'] != '' && $proxy == null){
+            $proxy = $_ENV['DEBUG_PROXY'];
+        }
+
         // build proxy (if applicable)
         if ($proxy != null && preg_match('/^([^:]+):(.*)$/', $proxy, $matches)){
             $options = array(
@@ -105,6 +113,39 @@ class HTTP {
 
         // get a response object
         return $request->exec($uri, 'POST', $data, $headers, $cookies, null);
+    }
+
+    /**
+     * process a url put request
+     *
+     * @param string $uri
+     * @param array $data
+     * @param array $headers
+     * @param array $cookies
+     * @param string $proxy (i.e. 127.0.0.1:8888)
+     * @return object
+     */
+    public static function put($uri, $data=null, $headers=null, $cookies=null, $proxy=null){
+        $options = null;
+
+        if ($_ENV['DEBUG_PROXY'] && $_ENV['DEBUG_PROXY'] != '' && $proxy == null){
+            $proxy = $_ENV['DEBUG_PROXY'];
+        }
+
+        // build proxy (if applicable)
+        if ($proxy != null && preg_match('/^([^:]+):(.*)$/', $proxy, $matches)){
+            $options = array(
+                CURLOPT_PROXY           => $matches[1],
+                CURLOPT_PROXYPORT       => $matches[2],
+                CURLOPT_SSL_VERIFYPEER  => false
+            );
+        }
+
+        // create a request object
+        $request = new self($options);
+
+        // get a response object
+        return $request->exec($uri, 'PUT', $data, $headers, $cookies, null);
     }
 
     /**
@@ -143,6 +184,20 @@ class HTTP {
             if (!empty($options)) $this->options = array_extend($this->options, $options);
             if (!empty($this->options)) curl_setopt_array($this->handle, $this->options);
 
+            // curl put/post form data
+            if ($this->method == 'POST' || $this->method == 'PUT' && !empty($data)){
+                $fields = (is_associative_array($data) ? http_build_query($data, '', '&') : (is_array($data) ? http_build_query($data) : $data));
+
+                if ($this->method == 'POST' && !empty($data)){
+                    curl_setopt($this->handle, CURLOPT_POST, true);
+                } else if ($this->method == 'PUT' && !empty($data)){
+                    curl_setopt($this->handle, CURLOPT_CUSTOMREQUEST, 'PUT');
+                    $this->headers = array_merge($this->headers, array('Content-Length' => strlen($fields)));
+                }
+
+                curl_setopt($this->handle, CURLOPT_POSTFIELDS, $data);
+            }
+
             // curl headers
             if (!empty($headers)) $this->headers = array_merge($this->headers, $headers);
             if (!empty($this->headers)) curl_setopt($this->handle, CURLOPT_HTTPHEADER, $this->headers);
@@ -150,17 +205,6 @@ class HTTP {
             // curl cookies
             if (!empty($cookies)) $this->cookies = array_extend($this->cookies, $cookies);
             if (!empty($this->cookies)) curl_setopt($this->handle, CURLOPT_COOKIE, $this->serializeCookies($this->cookies));
-
-            // set post data
-            if ($this->method == 'POST' && !empty($data)){
-                curl_setopt($this->handle, CURLOPT_POST, true);
-
-                if (is_associative_array($data)){
-                    curl_setopt($this->handle, CURLOPT_POSTFIELDS, http_build_query($data, '', '&'));
-                } else {
-                    curl_setopt($this->handle, CURLOPT_POSTFIELDS, $data);
-                }
-            }
 
             // execute the request
             $result = curl_exec($this->handle);
