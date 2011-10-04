@@ -192,10 +192,10 @@ class HTTP {
                     curl_setopt($this->handle, CURLOPT_POST, true);
                 } else if ($this->method == 'PUT' && !empty($data)){
                     curl_setopt($this->handle, CURLOPT_CUSTOMREQUEST, 'PUT');
-                    $this->headers = array_merge($this->headers, array('Content-Length' => strlen($fields)));
+                    $this->headers = array_merge($this->headers, array('Content-Length: ' . strlen($fields)));
                 }
 
-                curl_setopt($this->handle, CURLOPT_POSTFIELDS, $data);
+                curl_setopt($this->handle, CURLOPT_POSTFIELDS, $fields);
             }
 
             // curl headers
@@ -233,11 +233,10 @@ class HTTP {
             }
 
             // capture response data
-            $header_size = curl_getinfo($this->handle, CURLINFO_HEADER_SIZE);
-			// strip add'l proxy headers, which aren't accounted for in CURLINFO_HEADER_SIZE
-            $result = preg_replace('/^HTTP[^\r\n]+(\r\n){2,}/siU', '', $result);
-            $header = substr($result, 0, $header_size);
-            $body = substr($result, $header_size);
+			// (strip additional HTTP headers, which aren't accounted for in CURLINFO_HEADER_SIZE)
+            $split = preg_split('/(\r\n){2,}/', $result);
+            $header = $split[count($split)-2];
+            $body = $split[count($split)-1];
             $status = curl_getinfo($this->handle, CURLINFO_HTTP_CODE);
 
             // parse the Location header
