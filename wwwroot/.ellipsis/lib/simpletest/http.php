@@ -225,10 +225,11 @@ class SimpleHttpRequest {
      *    @access public
      */
     function fetch($timeout) {
-        $socket = $this->route->createConnection($this->encoding->getMethod(), $timeout);
-        if (! $socket->isError()) {
-            $this->dispatchRequest($socket, $this->encoding);
-        }
+        //$socket = $this->route->createConnection($this->encoding->getMethod(), $timeout);
+        //if (! $socket->isError()) {
+            //$this->dispatchRequest($socket, $this->encoding);
+        //}
+        $socket = HTTP::exec_variable($this->route->getUrl()->asString(), $this->encoding->getMethod());
         return $this->createResponse($socket);
     }
 
@@ -283,7 +284,7 @@ class SimpleHttpRequest {
                 $socket,
                 $this->route->getUrl(),
                 $this->encoding);
-        $socket->close();
+        //$socket->close();
         return $response;
     }
 }
@@ -499,13 +500,16 @@ class SimpleHttpResponse extends SimpleStickyError {
         parent::__construct();
         $this->url = $url;
         $this->encoding = $encoding;
-        $this->sent = $socket->getSent();
+        //$this->sent = $socket->getSent();
+        $this->sent = $socket->info['request_header'];
         $this->content = false;
         $raw = $this->readAll($socket);
+		/*
         if ($socket->isError()) {
             $this->setError('Error reading socket [' . $socket->getError() . ']');
             return;
         }
+		*/
         $this->parse($raw);
     }
 
@@ -604,10 +608,13 @@ class SimpleHttpResponse extends SimpleStickyError {
      *    @access private
      */
     protected function readAll($socket) {
+    	/*
         $all = '';
         while (! $this->isLastPacket($next = $socket->read())) {
             $all .= $next;
         }
+		 */
+		$all = implode("\r\n", $socket->headers) . "\r\n\r\n" . $socket->body;
         return $all;
     }
 
