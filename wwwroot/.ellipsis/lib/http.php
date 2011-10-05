@@ -36,8 +36,7 @@ class HTTP {
             CURLOPT_HEADER          => 1,
             CURLOPT_RETURNTRANSFER  => 1,
             CURLOPT_USERAGENT       => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_7) AppleWebKit/535.1 (KHTML, like Gecko) Chrome/13.0.782.112 Safari/535.1',
-            CURLOPT_VERBOSE         => 0,
-            CURLINFO_HEADER_OUT		=> 1
+            CURLOPT_VERBOSE         => 0
         );
         if (is_array($curloptions)){
             $this->options = array_extend($this->options, $curloptions);
@@ -150,41 +149,6 @@ class HTTP {
     }
 
     /**
-     * process a variable url request
-     *
-     * @param string $uri
-	 * @param string $verb (GET, PUT, POST, DELETE)
-     * @param array $data
-     * @param array $headers
-     * @param array $cookies
-     * @param string $proxy (i.e. 127.0.0.1:8888)
-     * @return object
-     */
-    public static function exec_variable($uri, $verb, $data=null, $headers=null, $cookies=null, $proxy=null){
-        $options = null;
-
-        if ($_ENV['DEBUG_PROXY'] && $_ENV['DEBUG_PROXY'] != '' && $proxy == null){
-            $proxy = $_ENV['DEBUG_PROXY'];
-        }
-		
-        // build proxy (if applicable)
-        if ($proxy != null && preg_match('/^([^:]+):(.*)$/', $proxy, $matches)){
-            $options = array(
-                CURLOPT_PROXY           => $matches[1],
-                CURLOPT_PROXYPORT       => $matches[2],
-                CURLOPT_SSL_VERIFYPEER  => false
-            );
-        }
-
-        // create a request object
-        $request = new self($options);
-
-        // get a response object
-        return $request->exec($uri, $verb, $data, $headers, $cookies, null);
-    }
-
-
-    /**
      * execute a url http request
      *
      * @param string $uri
@@ -209,8 +173,7 @@ class HTTP {
             'cookies'   => null,
             'options'   => null,
             'headers'   => null,
-            'body'      => null,
-            'info'		=> null
+            'body'      => null
         );
 
         // get handle on curl :)
@@ -301,8 +264,6 @@ class HTTP {
             $response->cookies  = $this->deserializeCookies($cookies);
             $response->headers  = $this->deserializeHeaders($header);
             $response->body     = $body;
-			$response->info		= curl_getinfo($this->handle);
-			
 
             // if redirect (3xx) status, update cookies and redirect
             if (strpos($status, '3') === 0) {
