@@ -1,27 +1,32 @@
 <?php
-// simpletest 
-require_once('../lib/simpletest/autorun.php');
-// mock file system object
-require_once('../lib/vfsstream/vfsStream.php');
 
-// library to test
-require_once('../php.php');
-
-// test class
+/**
+ * php library self test
+ *
+ * @author Toby Miller <tobius.miller@gmail.com>
+ * @license MIT <http://www.opensource.org/licenses/mit-license.php>
+ * @package ellipsis
+ * @subpackage tests
+ */
 class TestOfPhp extends UnitTestCase {
+    function testIsAssociativeArray(){
+        //is_associative_array();
+        // pass successful types
+        // pass known failure types
+    }
 
-function rrmdir($dir) { 
-   if (is_dir($dir)) { 
-     $objects = scandir($dir); 
-     foreach ($objects as $object) { 
-       if ($object != "." && $object != "..") { 
-         if (filetype($dir."/".$object) == "dir") rrmdir($dir."/".$object); else unlink($dir."/".$object); 
-       } 
-     } 
-     reset($objects); 
-     rmdir($dir); 
-   } 
- } 
+    function rrmdir($dir) { 
+        if (is_dir($dir)) { 
+            $objects = scandir($dir); 
+            foreach ($objects as $object) { 
+                if ($object != "." && $object != "..") { 
+                    if (filetype($dir."/".$object) == "dir") rrmdir($dir."/".$object); else unlink($dir."/".$object); 
+                } 
+            } 
+            reset($objects); 
+            rmdir($dir); 
+        } 
+    } 
 
 	function setUp()
 	{

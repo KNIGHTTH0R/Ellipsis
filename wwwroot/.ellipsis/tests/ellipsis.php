@@ -1,8 +1,17 @@
 <?php
-// simpletest 
-require_once('../lib/simpletest/autorun.php');
 
+/**
+ * Ellipsis self test
+ *
+ * @package ellipsis
+ * @subpackage tests
+ */
 class TestOfEllipsis extends UnitTestCase {
+    function testEllipsisRecordsNewRoute(){
+        // determine application context
+        // add a new route
+        // confirm that the route now exists in that context
+    }
 	
 	// since Ellipsis self-constructs on include, it needs to be a conditional situation
 	function includeEllipsis(){
