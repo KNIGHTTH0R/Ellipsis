@@ -22,6 +22,7 @@ foreach($dirs as $dir){
 if ($ellipsis){
     require_once(dirname(__FILE__) . '/utils/simpletest/unit_tester.php');
     require_once(dirname(__FILE__) . '/utils/simpletest/reporter.php');
+    require_once(dirname(__FILE__) . '/utils/vfsstream/vfsStream.php');
 
     foreach($apps as $key => $val){
         $name = substr($key, 1);
