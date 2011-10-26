@@ -3,6 +3,8 @@
 /**
  * additional PHP functions (i.e. not presently provided by or used by PHP)
  *
+ * @package ellipsis
+ * @subpackage global
  * @author Toby Miller <tobius.miller@gmail.com>
  * @license MIT <http://www.opensource.org/licenses/mit-license.php>
  */
@@ -19,13 +21,15 @@ function ellipsis_autoload($class_name){
     }
     if (preg_match('/^[a-z]+$/i', $class_name)){
         // first try to load from the application library
-        foreach($_ENV['APPS'] as $name => $app){
-            if (is_dir($app['SCRIPT_LIB'])){
-                $path = $app['SCRIPT_LIB'] . '/' . strtolower($class_name) . '.php';
-                if (is_file($path)){
-                    $_ENV['AUTOLOAD'][] = $name . '::' . strtolower($class_name);
-                    require $path;
-                    return;
+        if ($_ENV['APPS']){
+            foreach($_ENV['APPS'] as $name => $app){
+                if (is_dir($app['SCRIPT_LIB'])){
+                    $path = $app['SCRIPT_LIB'] . '/' . strtolower($class_name) . '.php';
+                    if (is_file($path)){
+                        $_ENV['AUTOLOAD'][] = $name . '::' . strtolower($class_name);
+                        require $path;
+                        return;
+                    }
                 }
             }
         }
@@ -48,7 +52,7 @@ spl_autoload_register('ellipsis_autoload');
  * @param array $array
  * @return boolean
  */
-function is_associative_array($array){
+function is_associative_array(array $array){
     if (!is_array($array) || empty($array)) return false;
     $keys = array_keys($array);
     return array_keys($keys) !== $keys;
@@ -61,21 +65,21 @@ function is_associative_array($array){
  * @param array $array2
  * @return array
  */
-function array_extend($array, $array2){
-    $array = (is_array($array)) ? $array : array();
+function array_extend($array1, $array2){
+    $array1 = (is_array($array1)) ? $array1 : array();
     $array2 = (is_array($array2)) ? $array2 : array();
     foreach($array2 as $k=>$v){
         if (is_associative_array($v)){
-            if(!isset($array[$k])) $array[$k] = $v;
-            else $array[$k] = array_extend($array[$k], $v);
+            if(!isset($array1[$k])) $array1[$k] = $v;
+            else $array1[$k] = array_extend($array1[$k], $v);
         } else {
             if(is_array($v)){
-                if (isset($array[$k]) && is_array($array[$k])) $array[$k] = array_merge($array[$k], $v);
-                else $array[$k] = $v;
-            } else $array[$k] = $v;
+                if (isset($array1[$k]) && is_array($array1[$k])) $array1[$k] = array_merge($array1[$k], $v);
+                else $array1[$k] = $v;
+            } else $array1[$k] = $v;
         }
     }
-    return $array;
+    return $array1;
 }
 
 /**
@@ -95,6 +99,16 @@ function preg_array($regexp, $haystack){
         }
     }
     return false;
+}
+
+/**
+ * determine if the passed string is a valid regular expression
+ *
+ * @param string $regexp
+ * @return boolean
+ */
+function is_regexp($regexp){
+    return (@preg_match($regexp, null) !== false);
 }
 
 /**
