@@ -29,6 +29,7 @@ class Ellipsis {
         // configure system defaults using super globals
         $_ENV = array_merge($_ENV, 
             array(
+                'CACHE_DIR'     => $_SERVER['DOCUMENT_ROOT'] . '/.cached',
                 'SCRIPT_ROOT'   => __DIR__,
                 'SCRIPT_LIB'    => __DIR__ . '/lib',
                 'DEBUG'         => true,
@@ -192,11 +193,23 @@ class Ellipsis {
         if ($_ENV['CACHE_TIME'] > 0){
             // define the file pair
             $output_file    = $_SERVER['DOCUMENT_ROOT'] . $_SERVER['PATH_INFO'];
+            $cache_file     = $_ENV['CACHE_DIR'] . '/files' . $_SERVER['PATH_INFO'];
             $cache_time     = time() + $_ENV['CACHE_TIME'];
-            $cache_file     = $output_file . '.' . $cache_time;
+            //$cache_file     = $output_file . '.' . $cache_time;
 
-            // touch the files
-            if (touch_recursive($output_file) && touch_recursive($cache_file)){
+            // ensure writability
+            $write = false;
+            if (is_writable($output_file) && is_writable($cache_file)){
+                $write = true;
+            } else {
+                $hash = md5($output_file);
+                if (touch_recursive($output_file . '.' . $hash . '.tmp') && touch_recursive($cache_file . '.' . $hash . '.tmp')){
+                    @unlink($output_file . '.' . $hash . '.tmp');
+                    @unlink($cache_file . '.' . $hash . '.tmp');
+                    $write = true;
+                }
+            }
+            if ($write){
                 // capture the current buffer
                 $buffer = ob_get_contents();
 
@@ -204,6 +217,11 @@ class Ellipsis {
                 $fp = fopen($output_file, 'wb');
                 fwrite($fp, $buffer);
                 fclose($fp);
+
+                // write the expiration time to the cache file
+                file_put_contents($cache_file, $cache_time);
+
+                // output debug info
                 self::debug("Cache Time: " . date('l jS \of F Y h:i:s A T', $cache_time));
             }
         }
@@ -237,11 +255,13 @@ class Ellipsis {
             }
         }
 
+
         // process routes
         foreach($_ENV['ROUTES'] as $route){
             // match the conditions of the route
             $match = true;
             foreach($route['conditions'] as $variable => $condition){
+                // prepare the discovered condition to be used as a regexp
                 switch($variable){
                     case 'METHOD':
                         // match a specific request method (default is GET)
@@ -252,7 +272,8 @@ class Ellipsis {
                         break;
                     case 'URI':
                         // match a specific URI pattern
-                        if (preg_match('/' . $condition . '/U', $_SERVER['PATH_INFO'], $matches)){
+                        $expression = is_regexp('/' . $condition . '/U') ? '/' . $condition . '/U' : (is_regexp($condition) ? $condition : null);
+                        if (preg_match($expression, $_SERVER['PATH_INFO'], $matches)){
                             if (count($matches) > 1){
                                 // capture backreferences by index and name
                                 array_shift($matches);
@@ -272,7 +293,8 @@ class Ellipsis {
                     case 'QUERY':
                     case 'GET':
                         foreach($condition as $key => $val){
-                            if (!isset($_GET[$key]) || !preg_match('/' . $val . '/U', $_GET[$key])){
+                            $expression = is_regexp('/' . $val . '/U') ? '/' . $val . '/U' : (is_regexp($val) ? $val : null);
+                            if (!isset($_GET[$key]) || !preg_match($expression, $_GET[$key])){
                                 $match = false;
                                 break 3;
                             }
@@ -280,7 +302,8 @@ class Ellipsis {
                         break;
                     case 'POST':
                         foreach($condition as $key => $val){
-                            if (!isset($_POST[$key]) || !preg_match('/' . $val . '/U', $_POST[$key])){
+                            $expression = is_regexp('/' . $val . '/U') ? '/' . $val . '/U' : (is_regexp($val) ? $val : null);
+                            if (!isset($_POST[$key]) || !preg_match($expression, $_POST[$key])){
                                 $match = false;
                                 break 3;
                             }
@@ -288,7 +311,8 @@ class Ellipsis {
                         break;
                     case 'COOKIE':
                         foreach($condition as $key => $val){
-                            if (!isset($_COOKIE[$key]) || !preg_match('/' . $val . '/U', $_COOKIE[$key])){
+                            $expression = is_regexp('/' . $val . '/U') ? '/' . $val . '/U' : (is_regexp($val) ? $val : null);
+                            if (!isset($_COOKIE[$key]) || !preg_match($expression, $_COOKIE[$key])){
                                 $match = false;
                                 break 3;
                             }
@@ -296,7 +320,8 @@ class Ellipsis {
                         break;
                     case 'SERVER':
                         foreach($condition as $key => $val){
-                            if (!isset($_SERVER[$key]) || !preg_match('/' . $val . '/U', $_SERVER[$key])){
+                            $expression = is_regexp('/' . $val . '/U') ? '/' . $val . '/U' : (is_regexp($val) ? $val : null);
+                            if (!isset($_SERVER[$key]) || !preg_match($expression, $_SERVER[$key])){
                                 $match = false;
                                 break 3;
                             }
@@ -304,7 +329,8 @@ class Ellipsis {
                         break;
                     case 'ENV':
                         foreach($condition as $key => $val){
-                            if (!isset($_ENV[$key]) || !preg_match('/' . $val . '/U', $_ENV[$key])){
+                            $expression = is_regexp('/' . $val . '/U') ? '/' . $val . '/U' : (is_regexp($val) ? $val : null);
+                            if (!isset($_ENV[$key]) || !preg_match($expression, $_ENV[$key])){
                                 $match = false;
                                 break 3;
                             }
@@ -350,8 +376,6 @@ class Ellipsis {
                     preg_match_all('/\$\{([^\}]+)\}/', $route['rewrite_path'], $matches);
                     if (count($matches) > 1){
                         foreach($matches[1] as $match){
-                            self::debug('debugging backreference', $match);
-                            self::debug('debugging backreference', $route['params']);
                             if (is_numeric($match) && isset($route['params'][$match])){
                                 $route['rewrite_path'] = preg_replace('/\$\{' . $match . '\}/', $route['params'][$match], $route['rewrite_path']);
                             } else if (isset($route['params']["{$match}"])){
@@ -394,6 +418,26 @@ class Ellipsis {
     public static function cache($seconds){
         if (is_numeric($seconds) && $seconds > 0){
             $_ENV['CACHE_TIME'] = $seconds;
+        }
+    }
+
+    /**
+     * expire currently cached resources
+     *
+     * @param void
+     * @return void
+     */
+    public static function expire(){
+        $now = time();
+        $expire_files = scandir_recursive($_ENV['CACHE_DIR'] . '/files');
+        foreach($expire_files as $expire_file){
+            $expire_time = file_get_contents($expire_file);
+            if ($now >= $expire_time){
+                $cached_file = $_SERVER['DOCUMENT_ROOT'] . preg_replace('/^.*\/files/', '', $expire_file);
+                if (@unlink($cached_file)){
+                    @unlink($expire_file);
+                }
+            }
         }
     }
 
