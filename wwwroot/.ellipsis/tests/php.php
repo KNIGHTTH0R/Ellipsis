@@ -9,12 +9,6 @@
  * @subpackage tests
  */
 class TestOfPhp extends UnitTestCase {
-    function testIsAssociativeArray(){
-        //is_associative_array();
-        // pass successful types
-        // pass known failure types
-    }
-
     function rrmdir($dir) { 
         if (is_dir($dir)) { 
             $objects = scandir($dir); 
