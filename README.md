@@ -1,7 +1,7 @@
 Ellipsis - Version 0.1
 ================================================================================
 Written by [Toby Miller](tobius.miller@gmail.com)
-Licensed under the [MIT](http://www.opensource.org/licenses/mit-license.php)
+Licensed under the [MIT License](http://www.opensource.org/licenses/mit-license.php)
 
 Introduction
 --------------------------------------------------------------------------------
@@ -27,16 +27,37 @@ Optional Software
 * ChromePHP Browser Extension (useful for Ellipsis::debug)
 * FirePHP Browser Extension (useful for Ellipsis::debug)
 * cURL 7.21.x (required by HTTP module)
+* Graphviz 2.28 or higher (used by Docblox to generate Class Inheritance Diagram)
 
 Installation Instructions
 --------------------------------------------------------------------------------
-@todo: provide git instructions
+Create a local project folder
+    mkdir ~/Projects/your_project
+    cd ~/Projects/your_project
 
-@todo: provide download/extract instructions
+Clone the Ellipsis project
+    git clone https://github.com/tobius/Ellipsis.git
+
+Add this project to your Apache configuration, for example:
+    <VirtualHost *:80>
+        DocumentRoot "/Users/tmiller/Sites/your_project"
+        ServerName local.your_project.com
+        LogFormat "%V %h %l %u %t \"%r\" %s %b" vcommon
+        ErrorLog "logs/vhosts-your_project-error_log"
+        CustomLog "logs/vhosts-your_project-access_log" vcommon
+        <Directory "/Users/tmiller/Sites/your_project">
+            Options Indexes FollowSymLinks ExecCGI Includes
+            AllowOverride All
+            Order allow,deny
+            Allow from all
+        </Directory>
+    </VirtualHost>
+
+Restart Apache and visit your installation, for example:
+    sudo xampp restart
+    open http://local.your_project.com
 
 @todo: detail permissions instructions
-
-@todo: detail security considerations (i.e. hiding ...)
 
 Documentation
 --------------------------------------------------------------------------------
