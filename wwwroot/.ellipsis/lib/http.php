@@ -4,18 +4,49 @@
  * perform stateful http/https web requests
  *
  * @author Toby Miller <tobius.miller@gmail.com>
+ * @author Brian Celenza <bcelenza@gmail.com>
  * @license MIT <http://www.opensource.org/licenses/mit-license.php>
  * @package ellipsis
+ * @subpackage modules
  * @depends cURL <http://php.net/curl>
  */
 
 class HTTP {
 
+    /**
+     * working URI property
+     * @var string
+     */
     private $uri = null;
+
+    /**
+     * working HTTP method
+     * @var string
+     */
     private $method = 'GET';
+
+    /**
+     * working array of session cookies
+     * @var array
+     */
     private $cookies = array();
+
+    /**
+     * working array of session headers
+     * @var array
+     */
     private $headers = array();
+
+    /**
+     * working array of curl options
+     * @var array
+     */
     private $options = array();
+
+    /**
+     * working array of session redirects
+     * @var array
+     */
     private $redirects = array();
 
     /**
@@ -29,7 +60,7 @@ class HTTP {
         // set default curl options
         $this->options = array(
             CURLOPT_SSL_VERIFYPEER  => 1,
-            CURLOPT_CAINFO          => realpath(dirname(__FILE__) . '/curl.crt.pem'),
+            CURLOPT_CAINFO          => realpath(dirname(__FILE__) . '/certificates/cacert.pem'),
             CURLOPT_ENCODING        => 'gzip,deflate,sdch',
             CURLOPT_FOLLOWLOCATION  => 0,
             CURLOPT_MAXREDIRS       => 5,
@@ -70,8 +101,7 @@ class HTTP {
         if ($proxy != null && preg_match('/^([^:]+):(.*)$/', $proxy, $matches)){
             $options = array(
                 CURLOPT_PROXY           => $matches[1],
-                CURLOPT_PROXYPORT       => $matches[2],
-                CURLOPT_SSL_VERIFYPEER  => 0
+                CURLOPT_PROXYPORT       => $matches[2]
             );
         }
 
@@ -103,8 +133,7 @@ class HTTP {
         if ($proxy != null && preg_match('/^([^:]+):(.*)$/', $proxy, $matches)){
             $options = array(
                 CURLOPT_PROXY           => $matches[1],
-                CURLOPT_PROXYPORT       => $matches[2],
-                CURLOPT_SSL_VERIFYPEER  => false
+                CURLOPT_PROXYPORT       => $matches[2]
             );
         }
 
@@ -136,8 +165,7 @@ class HTTP {
         if ($proxy != null && preg_match('/^([^:]+):(.*)$/', $proxy, $matches)){
             $options = array(
                 CURLOPT_PROXY           => $matches[1],
-                CURLOPT_PROXYPORT       => $matches[2],
-                CURLOPT_SSL_VERIFYPEER  => false
+                CURLOPT_PROXYPORT       => $matches[2]
             );
         }
 
@@ -166,9 +194,9 @@ class HTTP {
 
         // fashion a response object
         $response = (object) array(
-            'uri'       => null,
-            'method'    => null,
-            'data'      => null,
+            'uri'       => $this->uri,
+            'method'    => $this->method,
+            'data'      => $data,
             'status'    => null,
             'cookies'   => null,
             'options'   => null,
@@ -209,69 +237,49 @@ class HTTP {
             // execute the request
             $result = curl_exec($this->handle);
 
-            // check for errors
-            if (curl_getinfo($this->handle, CURLINFO_HTTP_CODE) >= 400){
-                trigger_error('Server error: ' . curl_getinfo($this->handle, CURLINFO_HTTP_CODE));
-            }
-            if (curl_errno($this->handle)){
-                switch(curl_errno($this->handle)){
-                    case CURLE_COULDNT_CONNECT:
-                        trigger_error('Could not connect to host');
-                        break;
-                    case CURLE_OPERATION_TIMEOUTED:
-                        trigger_error('Timeout: ' . curl_error($this->handle));
-                        break;
-                    case CURLE_HTTP_NOT_FOUND:
-                    case CURLE_HTTP_PORT_FAILED:
-                    case CURLE_HTTP_POST_ERROR:
-                    case CURLE_HTTP_RANGE_ERROR:
-                        trigger_error('Server error: ' . curl_error($this->handle));
-                        break;
-                    default:
-                        trigger_error('Curl error: ' . curl_error($this->handle));
+            // set basic info
+            $response->status   = curl_getinfo($this->handle, CURLINFO_HTTP_CODE);
+            $response->errno    = curl_errno($this->handle);
+            $response->error    = curl_error($this->handle);
+
+            if ($response->error == ''){
+                // capture response data
+                // (strip additional HTTP headers, which aren't accounted for in CURLINFO_HEADER_SIZE)
+                $split = preg_split('/(\r\n){2,}/', $result);
+                $header = $split[count($split)-2];
+                $body = $split[count($split)-1];
+
+                // parse the Location header
+                // per http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.30
+                // the Location header "consists of a single absolute URI"
+                if (preg_match('/^Location: (.+)$/m', $header, $location_header)){
+                    $location = $location_header[1];
+                } else {
+                    $location = $this->uri;
+                }
+
+                // parse the Set-Cookie lines from response header
+                // VERY IMPORTANT:  malformed cookies from some websites REQUIRE the pattern: [^;\n\s]
+                //                  please do NOT reduce the pattern back to: [^;]
+                //                  as not everyone follows the rules
+                if (preg_match_all("/^Set-Cookie: ([^;\n\s]+)/m", $header, $cookie_lines)) {
+                    $cookies = $cookie_lines[1];
+                }
+
+                // set response data to the response object
+                $response->uri      = $location;
+                $response->cookies  = $this->deserializeCookies($cookies);
+                $response->headers  = $this->deserializeHeaders($header);
+                $response->body     = $body;
+
+                // if redirect (3xx) status, update cookies and redirect
+                if (strpos($response->status, '3') === 0) {
+                    $response = $this->followRedirect($response);
                 }
             }
-
-            // capture response data
-			// (strip additional HTTP headers, which aren't accounted for in CURLINFO_HEADER_SIZE)
-            $split = preg_split('/(\r\n){2,}/', $result);
-            $header = $split[count($split)-2];
-            $body = $split[count($split)-1];
-            $status = curl_getinfo($this->handle, CURLINFO_HTTP_CODE);
-
-            // parse the Location header
-            // per http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.30
-            // the Location header "consists of a single absolute URI"
-            if (preg_match('/^Location: (.+)$/m', $header, $location_header)){
-                $location = $location_header[1];
-            } else {
-                $location = $this->uri;
-            }
-
-			// parse the Set-Cookie lines from response header
-			// VERY IMPORTANT:  malformed cookies from some websites REQUIRE the pattern: [^;\n\s]
-			//                  please do NOT reduce the pattern back to: [^;]
-            //                  as not everyone follows the rules
-            if (preg_match_all("/^Set-Cookie: ([^;\n\s]+)/m", $header, $cookie_lines)) {
-                $cookies = $cookie_lines[1];
-			}
-
-            // set response data to the response object
-            $response->uri      = $location;
-            $response->method   = $method;
-            $response->data     = $data;
-            $response->status   = $status;
-            $response->cookies  = $this->deserializeCookies($cookies);
-            $response->headers  = $this->deserializeHeaders($header);
-            $response->body     = $body;
-
-            // if redirect (3xx) status, update cookies and redirect
-            if (strpos($status, '3') === 0) {
-                $response = $this->followRedirect($response);
-            }
-
         } catch(Exception $e){
-            trigger_error('Server error: ' . curl_error($this->handle));
+            $response->errno    = curl_errno($this->handle);
+            $response->error    = curl_error($this->handle);
         }
         
         // return the response object
