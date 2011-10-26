@@ -331,6 +331,11 @@ class HTTP {
      * @return array
      */
     private function deserializeHeaders($headers){
+		// $cookes usually usually comes in as an indexed array here.
+		if (is_array($cookies)){
+			$cookies = implode(';', $cookies);
+		}
+		
         if (is_string($headers)){
             $hash = array();
             $headers = trim($headers);
