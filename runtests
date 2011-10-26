@@ -1,0 +1,36 @@
+#!/usr/bin/php
+<?php
+
+/**
+ * run unit tests for ellipsis applications
+ */
+
+$base = dirname(__FILE__) . '/wwwroot';
+$dirs = scandir($base);
+$apps = array();
+$ellipsis = false;
+
+include $base . '/.ellipsis/php.php';
+
+foreach($dirs as $dir){
+    if (is_dir($base . '/' . $dir . '/tests') && preg_match('/^\.[^\.]+$/', $dir)){
+        if ($dir == '.ellipsis') $ellipsis = true;
+        $apps[$dir] = scandir_recursive($base . '/' . $dir . '/tests');
+    }
+}
+
+if ($ellipsis){
+    require_once(dirname(__FILE__) . '/utils/simpletest/unit_tester.php');
+    require_once(dirname(__FILE__) . '/utils/simpletest/reporter.php');
+
+    foreach($apps as $key => $val){
+        $name = substr($key, 1);
+        $suite = new TestSuite($name . ' tests');
+        //print '<pre>' . print_r($suite, true) . '</pre>';
+        foreach($val as $test){
+            $suite->addFile($test);
+        }
+        $suite->run(new TextReporter());
+    }
+}
+
