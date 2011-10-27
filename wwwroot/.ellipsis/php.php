@@ -69,7 +69,7 @@ function array_extend($array1, $array2){
     $array1 = (is_array($array1)) ? $array1 : array();
     $array2 = (is_array($array2)) ? $array2 : array();
     foreach($array2 as $k=>$v){
-        if (is_associative_array($v)){
+        if (is_array($v) && is_associative_array($v)){
             if(!isset($array1[$k])) $array1[$k] = $v;
             else $array1[$k] = array_extend($array1[$k], $v);
         } else {
