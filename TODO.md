@@ -16,7 +16,7 @@ Modules
 - Write mysql.php (test transactions, begin, commit, rollback)
 - Create repository SQL
 - Write repository.php (php module)
-- Write PCI compliant data encryption module (PRIVATE CODEBASE)
+- Write xmlrpc.php (xml-rpc module)
 
 Testing
 --------------------------------------------------------------------------------
