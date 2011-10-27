@@ -32,18 +32,16 @@ Optional Software
 Installation Instructions
 --------------------------------------------------------------------------------
 Create a local project folder
-```bash
-mkdir ~/Projects/your_project
-cd ~/Projects/your_project
-```
+
+    mkdir ~/Projects/your_project
+    cd ~/Projects/your_project
 
 Clone the Ellipsis project
-```apple
+
     git clone https://github.com/tobius/Ellipsis.git
-```
 
 Add this project to your Apache configuration, for example:
-```
+
     <VirtualHost *:80>
         DocumentRoot "/Users/tmiller/Sites/your_project"
         ServerName local.your_project.com
@@ -57,9 +55,9 @@ Add this project to your Apache configuration, for example:
             Allow from all
         </Directory>
     </VirtualHost>
-```
 
 Restart Apache and visit your installation, for example:
+
     sudo xampp restart
     open http://local.your_project.com
 
