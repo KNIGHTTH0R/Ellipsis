@@ -32,8 +32,10 @@ Optional Software
 Installation Instructions
 --------------------------------------------------------------------------------
 Create a local project folder
-    mkdir ~/Projects/your_project
-    cd ~/Projects/your_project
+``` bash
+mkdir ~/Projects/your_project
+cd ~/Projects/your_project
+```
 
 Clone the Ellipsis project
     git clone https://github.com/tobius/Ellipsis.git
