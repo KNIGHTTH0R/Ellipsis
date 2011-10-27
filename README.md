@@ -34,11 +34,17 @@ Installation Instructions
 Create a local project folder
 
     mkdir ~/Projects/your_project
+
+Clone Ellipsis
+
     cd ~/Projects/your_project
-
-Clone the Ellipsis project
-
     git clone https://github.com/tobius/Ellipsis.git
+
+Fix permissions
+
+    cd ~/Projects/your_project
+    chmod 755 rundocs
+    chmod 755 runtests
 
 Add this project to your Apache configuration, for example:
 
@@ -61,12 +67,20 @@ Restart Apache and visit your installation, for example:
     sudo xampp restart
     open http://local.your_project.com
 
-@todo: detail permissions instructions
+Generate PHP Documentation
+
+    cd ~/Projects/your_project
+    ./rundocs
+    open http://local.your_project.com/docs/index.html
+
+Run Unit Tests
+
+    cd ~/Projects/your_project
+    ./runtests
 
 Documentation
 --------------------------------------------------------------------------------
 * README.md - this file
-* UNITTEST-README.md - how to run unit tests
 
 @TODO: update https://github.com/tobius/Ellipsis/wiki
 
