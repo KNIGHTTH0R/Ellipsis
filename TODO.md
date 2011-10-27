@@ -6,7 +6,7 @@ Documentation
 --------------------------------------------------------------------------------
 - Write final project description
 - Write readme file
-- Embed links into the docs to the appropriate readme section
+- Decide what should be included on the wiki
 
 Modules
 --------------------------------------------------------------------------------

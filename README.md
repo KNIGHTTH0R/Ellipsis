@@ -83,8 +83,6 @@ Documentation
 * README.md - this file
 * TODO.md - tasks left to do
 
-@todo: decide what should go on the wiki - https://github.com/tobius/Ellipsis/wiki
-
 Known Problems
 --------------------------------------------------------------------------------
 @todo: still in alpha
