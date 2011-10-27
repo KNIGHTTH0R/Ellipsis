@@ -21,7 +21,11 @@ Modules
 Testing
 --------------------------------------------------------------------------------
 - Write test.php
-- Write unit tests for each Ellipsis module
+- Write unit tests for Ellipsis methods
+- Write unit tests for http module methods
+- Write unit tests for image module methods
+- Write unit tests for mysql module methods
+- Write unit tests for repository module methods
 - Write unit tests for each routing method (COOKIES, ENV, SERVER, GET, POST, etc)
 - Write unit tests for each possible routing method combination
 
