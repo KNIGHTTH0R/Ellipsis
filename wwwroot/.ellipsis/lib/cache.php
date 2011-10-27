@@ -28,8 +28,8 @@ class Cache {
         }
 
         // generate a filepath unique to this meta info
-        $filename   = md5(serialize($meta)) . '.json';
-        $filepath   = $_ENV['CACHE_DIR'] . '/objects/' . $filename;
+        $filehash   = md5(serialize($meta));
+        $filepath   = $_ENV['CACHE_DIR'] . '/objects/' . $filehash . '.json';
 
         // store results as json for a shorter trip next time around
         if (is_writable($_ENV['CACHE_DIR'] . '/objects/')){
@@ -49,18 +49,21 @@ class Cache {
      */
     public static function get($meta){
         // generate the filepath that was used for this meta info
-        $filename   = md5(serialize($meta)) . '.json';
-        $filepath   = $_ENV['CACHE_DIR'] . '/objects/' . $filename;
+        $filehash   = md5(serialize($meta));
+        $filepath   = $_ENV['CACHE_DIR'] . '/objects/' . $filehash . '.json';
 
         if (is_file($filepath) && is_readable($filepath)){
             $content = file_get_contents($filepath);
             $decoded = json_decode($content, true);
 
-            if (time() >= $data['expires']){
+            $now = time();
+            if (time() >= $decoded['expires']){
                 // delete this file, it has expired
-                if (@unlink($filepath) !== false) return null;
+                if (@unlink($filepath) !== false){
+                    return null;
+                }
             } else {
-                return $data['data'];
+                return $decoded['data'];
             }
         }
 
