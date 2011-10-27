@@ -1,4 +1,4 @@
-Ellipsis - Version 0.1
+Ellipsis - Version 0.2
 ================================================================================
 Written by [Toby Miller](tobius.miller@gmail.com)
 Licensed under the [MIT License](http://www.opensource.org/licenses/mit-license.php)
@@ -81,12 +81,11 @@ Run Unit Tests
 Documentation
 --------------------------------------------------------------------------------
 * README.md - this file
+* TODO.md - tasks left to do
 
-@TODO: update https://github.com/tobius/Ellipsis/wiki
-
-@TODO: create api documentation using phpdoc
+@todo: decide what should go on the wiki - https://github.com/tobius/Ellipsis/wiki
 
 Known Problems
 --------------------------------------------------------------------------------
-@todo: determine if any exist thus far and explain, or say none known
+@todo: still in alpha
 
