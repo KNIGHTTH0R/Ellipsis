@@ -1,0 +1,11 @@
+
+# cached files and objects
+wwwroot/.cached/files
+wwwroot/.cached/objects
+
+# generated docs
+wwwroot/docs
+
+# a place to keep work in progress files
+wip
+
