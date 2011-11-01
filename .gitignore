@@ -6,6 +6,11 @@ wwwroot/.cached/objects
 # generated docs
 wwwroot/docs
 
+# utility repositories that are managed outside of ellipsis
+utils/simpletest
+utils/vfsstream
+utils/docblox
+
 # a place to keep work in progress files
 wip
 
