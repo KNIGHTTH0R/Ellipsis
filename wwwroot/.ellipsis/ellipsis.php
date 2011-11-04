@@ -14,7 +14,7 @@
  */
 class Ellipsis {
     /**
-     * initial (manual) constructor for Ellipsis
+     * static constructor (manually executed in class file)
      * 
      * @param void
      * @return void
@@ -232,19 +232,127 @@ class Ellipsis {
     }
 
     /**
-     * run the current request through Ellipsis
+     * match a route against this session
      *
-     * @param mixed $apps (app | apps)
+     * @param array $route
+     * @return boolean
+     */
+    public static function match(&$route){
+        // match the conditions of the route
+        $match = true;
+        foreach($route['conditions'] as $variable => $condition){
+            // prepare the discovered condition to be used as a regexp
+            switch($variable){
+                case 'METHOD':
+                    // match a specific request method (default is GET)
+                    if ($condition != $_SERVER['REQUEST_METHOD']){
+                        $match = false;
+                        break 2;
+                    }
+                    break;
+                case 'URI':
+                    // match a specific URI pattern
+                    $expression = is_regexp('/' . $condition . '/U') ? '/' . $condition . '/U' : (is_regexp($condition) ? $condition : null);
+                    /*
+                    if (!preg_match($expression, $_SERVER['PATH_INFO'])){
+                        $match = false;
+                        break 2;
+                    }
+                     */
+                    if (preg_match($expression, $_SERVER['PATH_INFO'], $matches)){
+                        if (count($matches) > 1){
+                            // capture backreferences by index and name
+                            array_shift($matches);
+                            foreach($matches as $k => $v){
+                                if (is_numeric($k)){
+                                    $route['params'][($k+1)] = $v;
+                                } else {
+                                    $route['params'][$k] = $v;
+                                }
+                            }
+                        }
+                    } else {
+                        $match = false;
+                        break 2;
+                    }
+                    break;
+                case 'QUERY':
+                case 'GET':
+                    foreach($condition as $key => $val){
+                        $expression = is_regexp('/' . $val . '/U') ? '/' . $val . '/U' : (is_regexp($val) ? $val : null);
+                        if (!isset($_GET[$key]) || !preg_match($expression, $_GET[$key])){
+                            $match = false;
+                            break 3;
+                        }
+                    }
+                    break;
+                case 'POST':
+                    foreach($condition as $key => $val){
+                        $expression = is_regexp('/' . $val . '/U') ? '/' . $val . '/U' : (is_regexp($val) ? $val : null);
+                        if (!isset($_POST[$key]) || !preg_match($expression, $_POST[$key])){
+                            $match = false;
+                            break 3;
+                        }
+                    }
+                    break;
+                case 'COOKIE':
+                    foreach($condition as $key => $val){
+                        $expression = is_regexp('/' . $val . '/U') ? '/' . $val . '/U' : (is_regexp($val) ? $val : null);
+                        if (!isset($_COOKIE[$key]) || !preg_match($expression, $_COOKIE[$key])){
+                            $match = false;
+                            break 3;
+                        }
+                    }
+                    break;
+                case 'SERVER':
+                    foreach($condition as $key => $val){
+                        $expression = is_regexp('/' . $val . '/U') ? '/' . $val . '/U' : (is_regexp($val) ? $val : null);
+                        if (!isset($_SERVER[$key]) || !preg_match($expression, $_SERVER[$key])){
+                            $match = false;
+                            break 3;
+                        }
+                    }
+                    break;
+                case 'ENV':
+                    foreach($condition as $key => $val){
+                        $expression = is_regexp('/' . $val . '/U') ? '/' . $val . '/U' : (is_regexp($val) ? $val : null);
+                        if (!isset($_ENV[$key]) || !preg_match($expression, $_ENV[$key])){
+                            $match = false;
+                            break 3;
+                        }
+                    }
+                    break;
+                default:
+                    $match = false;
+                    break 2;
+            }
+        }
+
+        return $match;
+    }
+
+    /**
+     * run application
+     *
+     * @param string $app
+     * @param mixed $conditions
      * @return void
      */
-    public static function run($apps){
-        $apps = is_array($apps) ? $apps : array($apps);
+    public static function run($app, $conditions = array()){
+        $route = array(
+            'application'   => $app,
+            'conditions'    => (is_string($conditions) ? array('URI' => $conditions) : $conditions),
+            'params'        => array(),
+            'rewrite_path'  => null,
+            'closure'       => null,
+            'cache'         => null
+        );
 
-        // load the ellipsis config
-        include "{$_ENV['SCRIPT_ROOT']}/config.php";
+        if (self::match($route)){
+            // load the ellipsis config
+            include "{$_ENV['SCRIPT_ROOT']}/config.php";
 
-        // find and load the app config(s)
-        foreach($apps as $app){
+            // find and load the app config(s)
             if (is_file("{$_SERVER['DOCUMENT_ROOT']}/.{$app}/config.php")){
                 $_ENV['CURRENT'] = $app;
                 $_ENV['APPS'][$app] = array(
@@ -253,164 +361,81 @@ class Ellipsis {
                 );
                 include "{$_SERVER['DOCUMENT_ROOT']}/.{$app}/config.php";
             }
-        }
 
+            // process routes
+            foreach($_ENV['ROUTES'] as $route){
+                // match the conditions of the route
+                if (self::match($route)){
+                    // this route matched, decide if it should be processed
+                    $process = false;
+                    if ($route['closure']){
+                        // capture the current cache setting (might need to undo)
+                        $cache_time = $_ENV['CACHE_TIME'];
+                        $_ENV['CACHE_TIME'] = $route['cache'];
 
-        // process routes
-        foreach($_ENV['ROUTES'] as $route){
-            // match the conditions of the route
-            $match = true;
-            foreach($route['conditions'] as $variable => $condition){
-                // prepare the discovered condition to be used as a regexp
-                switch($variable){
-                    case 'METHOD':
-                        // match a specific request method (default is GET)
-                        if ($condition != $_SERVER['REQUEST_METHOD']){
-                            $match = false;
-                            break 2;
+                        // process these instructions as a closure
+                        $result = $route['closure']($route['params']);
+                        if ($result === false){
+                            // this closure returned false, forcibly exit
+                            exit;
+                        } else {
+                            // undo cache setting
+                            $_ENV['CACHE_TIME'] = $cache_time;
+
+                            if (is_string($result)){
+                                // this closure returned a new path, set it and load it
+                                $route['rewrite_path'] = $result;
+                                $process = true;
+                            } else {
+                                // this closure has finished, on to the next route
+                                continue;
+                            }
                         }
-                        break;
-                    case 'URI':
-                        // match a specific URI pattern
-                        $expression = is_regexp('/' . $condition . '/U') ? '/' . $condition . '/U' : (is_regexp($condition) ? $condition : null);
-                        if (preg_match($expression, $_SERVER['PATH_INFO'], $matches)){
-                            if (count($matches) > 1){
-                                // capture backreferences by index and name
-                                array_shift($matches);
-                                foreach($matches as $k => $v){
-                                    if (is_numeric($k)){
-                                        $route['params'][($k+1)] = $v;
-                                    } else {
-                                        $route['params'][$k] = $v;
-                                    }
+                    } else {
+                        $process = true;
+                    }
+
+                    if ($process){
+                        // perform backreference replacements first (if applicable)
+                        preg_match_all('/\$\{([^\}]+)\}/', $route['rewrite_path'], $matches);
+                        if (count($matches) > 1){
+                            foreach($matches[1] as $match){
+                                if (is_numeric($match) && isset($route['params'][$match])){
+                                    $route['rewrite_path'] = preg_replace('/\$\{' . $match . '\}/', $route['params'][$match], $route['rewrite_path']);
+                                } else if (isset($route['params']["{$match}"])){
+                                    $route['rewrite_path'] = preg_replace('/\$\{' . $match . '\}/', $route['params'][$match], $route['rewrite_path']);
+                                } else {
+                                    // leaving a backreference behind will result in an invalid file path
+                                    self::fail(500, 'Invalid Path: Closure backreference could not be replaced');
                                 }
                             }
-                        } else {
-                            $match = false;
-                            break 2;
                         }
-                        break;
-                    case 'QUERY':
-                    case 'GET':
-                        foreach($condition as $key => $val){
-                            $expression = is_regexp('/' . $val . '/U') ? '/' . $val . '/U' : (is_regexp($val) ? $val : null);
-                            if (!isset($_GET[$key]) || !preg_match($expression, $_GET[$key])){
-                                $match = false;
-                                break 3;
-                            }
+
+                        // process rewrite_path
+                        if (!preg_match('/\$\{/', $route['rewrite_path'])){
+                            $_ENV['CACHE_TIME'] = $route['cache'];
+                            self::load($route['rewrite_path']);
                         }
-                        break;
-                    case 'POST':
-                        foreach($condition as $key => $val){
-                            $expression = is_regexp('/' . $val . '/U') ? '/' . $val . '/U' : (is_regexp($val) ? $val : null);
-                            if (!isset($_POST[$key]) || !preg_match($expression, $_POST[$key])){
-                                $match = false;
-                                break 3;
-                            }
-                        }
-                        break;
-                    case 'COOKIE':
-                        foreach($condition as $key => $val){
-                            $expression = is_regexp('/' . $val . '/U') ? '/' . $val . '/U' : (is_regexp($val) ? $val : null);
-                            if (!isset($_COOKIE[$key]) || !preg_match($expression, $_COOKIE[$key])){
-                                $match = false;
-                                break 3;
-                            }
-                        }
-                        break;
-                    case 'SERVER':
-                        foreach($condition as $key => $val){
-                            $expression = is_regexp('/' . $val . '/U') ? '/' . $val . '/U' : (is_regexp($val) ? $val : null);
-                            if (!isset($_SERVER[$key]) || !preg_match($expression, $_SERVER[$key])){
-                                $match = false;
-                                break 3;
-                            }
-                        }
-                        break;
-                    case 'ENV':
-                        foreach($condition as $key => $val){
-                            $expression = is_regexp('/' . $val . '/U') ? '/' . $val . '/U' : (is_regexp($val) ? $val : null);
-                            if (!isset($_ENV[$key]) || !preg_match($expression, $_ENV[$key])){
-                                $match = false;
-                                break 3;
-                            }
-                        }
-                        break;
-                    default:
-                        $match = false;
-                        break 2;
+                    }
                 }
             }
-            if ($match){
-                // this route matched, decide if it should be processed
-                $process = false;
-                if ($route['closure']){
-                    // capture the current cache setting (might need to undo)
-                    $cache_time = $_ENV['CACHE_TIME'];
+
+            // process source files
+            $source_paths = scandir_recursive($_ENV['APPS'][$_ENV['CURRENT']]['SCRIPT_ROOT'], 'relative');
+            foreach($source_paths as $path){
+                if ($_SERVER['PATH_INFO'] == $path){
                     $_ENV['CACHE_TIME'] = $route['cache'];
-
-                    // process these instructions as a closure
-                    $result = $route['closure']($route['params']);
-                    if ($result === false){
-                        // this closure returned false, forcibly exit
-                        exit;
-                    } else {
-                        // undo cache setting
-                        $_ENV['CACHE_TIME'] = $cache_time;
-
-                        if (is_string($result)){
-                            // this closure returned a new path, set it and load it
-                            $route['rewrite_path'] = $result;
-                            $process = true;
-                        } else {
-                            // this closure has finished, on to the next route
-                            continue;
-                        }
-                    }
-                } else {
-                    $process = true;
-                }
-
-                if ($process){
-                    // perform backreference replacements first (if applicable)
-                    preg_match_all('/\$\{([^\}]+)\}/', $route['rewrite_path'], $matches);
-                    if (count($matches) > 1){
-                        foreach($matches[1] as $match){
-                            if (is_numeric($match) && isset($route['params'][$match])){
-                                $route['rewrite_path'] = preg_replace('/\$\{' . $match . '\}/', $route['params'][$match], $route['rewrite_path']);
-                            } else if (isset($route['params']["{$match}"])){
-                                $route['rewrite_path'] = preg_replace('/\$\{' . $match . '\}/', $route['params'][$match], $route['rewrite_path']);
-                            } else {
-                                // leaving a backreference behind will result in an invalid file path
-                                self::fail(500, 'Invalid Path: Closure backreference could not be replaced');
-                            }
-                        }
-                    }
-
-                    // process rewrite_path
-                    if (!preg_match('/\$\{/', $route['rewrite_path'])){
-                        $_ENV['CACHE_TIME'] = $route['cache'];
-                        self::load($route['rewrite_path']);
-                    }
+                    self::load($path);
                 }
             }
-        }
 
-        // process source files
-        $source_paths = scandir_recursive($_ENV['APPS'][$_ENV['CURRENT']]['SCRIPT_ROOT'], 'relative');
-        foreach($source_paths as $path){
-            if ($_SERVER['PATH_INFO'] == $path){
-                $_ENV['CACHE_TIME'] = $route['cache'];
-                self::load($path);
-            }
+            // all other attempts at routing failed
+            self::fail(404, 'Failed to match any routes ' . time());
         }
-
-        // all other attempts at routing failed
-        self::fail(404, 'Failed to match any routes ' . time());
     }
 
     /**
-     * configure this output to be cached
+     * configure the cache seconds for this output buffer
      *
      * @param integer $seconds
      * @return boolean
@@ -422,7 +447,7 @@ class Ellipsis {
     }
 
     /**
-     * expire currently cached resources
+     * expire all currently cached output buffers by expunging them
      *
      * @param void
      * @return void
@@ -442,7 +467,7 @@ class Ellipsis {
     }
 
     /**
-     * configure a new route to be used
+     * add a route configuration to be evaluated against the current output buffer
      *
      * @param mixed $conditions (uri_param | conditions)
      * @param mixed $instruction (rewrite_path | closure)
@@ -465,7 +490,6 @@ class Ellipsis {
 
     /**
      * load the destination resource and exit
-     * note: this is the end process so it must exit when finished
      *
      * @param string $path
      * @return void
