@@ -417,6 +417,51 @@ function touch_recursive($path){
 }
 
 /**
+ * convert hex to rgb
+ *
+ * @param string $hex
+ * @retrun array
+ */
+function hexrgb($hex){
+    $hex = ($hex[0] == '#') ? substr($hex, 1) : $hex;
+
+    if (strlen($hex) == 3){
+        list($r, $g, $b) = array($hex[0].$hex[0], $hex[1].$hex[1], $hex[2].$hex[2]);
+    } else if (strlen($hex) == 6){
+        list($r, $g, $b) = array($hex[0].$hex[1], $hex[2].$hex[3], $hex[4].$hex[5]);
+    }
+
+    if (isset($r) && isset($g) && isset($b)){
+        return array(hexdec($r), hexdec($g), hexdec($b));
+    } else {
+        return array(0, 0, 0);
+    }
+}
+
+/**
+ * convert rgb to hex
+ *
+ * @param integer $r
+ * @param integer $g
+ * @param integer $b
+ * @return string
+ */
+function rgbhex($r, $g, $b){
+    $r  = intval($r);
+    $g  = intval($g);
+    $b  = intval($b);
+    $r  = dechex($r < 0 ? 0 : ($r > 255 ? 255 : $r));
+    $g  = dechex($g < 0 ? 0 : ($g > 255 ? 255 : $g));
+    $b  = dechex($b < 0 ? 0 : ($b > 255 ? 255 : $b));
+    
+    $hex = (strlen($r) < 2 ? '0' : '') . $r;
+    $hex .= (strlen($g) < 2 ? '0' : '') . $g;
+    $hex .= (strlen($b) < 2 ? '0' : '') . $b;
+
+    return $hex;
+}
+
+/**
  * convert ascii to hexadecimal
  *
  * @param string $ascii
