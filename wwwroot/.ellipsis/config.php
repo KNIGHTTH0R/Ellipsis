@@ -22,6 +22,28 @@ Ellipsis::route('^\/lib\/.*$', function(){
     Ellipsis::fail(404); 
 }, 31536000);
 
+// create placeholder images
+Ellipsis::route('^\/placeholder\/(?<width>[0-9]+)x(?<height>[0-9]+)\.(?<extension>[a-z]+)$', function($params){
+    if (in_array($params['extension'], array('png', 'gif', 'jpg', 'jpeg'))){
+        header("Content-Type: image/{$params['extension']}");
+        $image = Image::placeholder($params['extension'], $params['width'], $params['height']);
+        switch($params['extension']){
+            case 'png':
+                imagepng($image);
+                break;
+            case 'gif':
+                imagegif($image);
+                break;
+            case 'jpg':
+            case 'jpeg':
+                imagejpeg($image, null, 95);
+                break;
+        }
+        imagedestroy($image);
+        exit;
+    }
+}, 108000);
+
 // enable some common debugging routes
 // (note: apps should override these in production settings)
 Ellipsis::route('^\/info\.php$', function(){ 

@@ -12,6 +12,45 @@
 class Image {
 
     /**
+     * generate a placeholder image
+     *
+     * @param string $type
+     * @param string $width
+     * @param string $height
+     * @param string $bg_color
+     * @param string $text_color
+     * @return object
+     */
+    public static function placeholder($type, $width, $height, $bg_hex = '666666', $text_hex = 'cccccc'){
+        // create text
+        $text       = "{$width} x {$height}";
+        $font_size  = ($width > $height) ? ($height / 10) : ($width / 10);
+
+        // create colors
+        $bg_rgb     = hexrgb($bg_hex);
+        $text_rgb   = hexrgb($text_hex);
+
+        // create image
+        $image      = imagecreatetruecolor($width, $height);
+        $bg_color   = imagecolorallocate($image, $bg_rgb[0], $bg_rgb[1], $bg_rgb[2]);
+        $text_color = imagecolorallocate($image, $text_rgb[0], $text_rgb[1], $text_rgb[2]);
+        imagefill($image, 0, 0, $bg_color);
+        imagettftext(
+            $image, 
+            $font_size, 
+            0, 
+            ($width / 2) - ($font_size * 2.75),
+            ($height / 2) + ($font_size * 0.2),
+            $text_color,
+            dirname(__FILE__) . '/assets/placeholder.ttf',
+            $text
+        );
+
+        // return image
+        return $image;
+    }
+
+    /**
      * resize an image
      *
      * @param string $old_image
