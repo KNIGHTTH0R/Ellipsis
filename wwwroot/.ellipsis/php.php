@@ -504,28 +504,26 @@ function jsonp_encode($jsonp, $value, $options = 0){
 }
 
 /**
- * encrypt data using a meta key
+ * encrypt data
  *
- * @param mixed $meta
+ * @param string $salt
  * @param mixed $unencrypted
  * @return string $encrypted
  */
-function encrypt($meta, $unencrypted){
-    $key = json_encode($meta, 1);
-    $encrypted = base64_encode(mcrypt_encrypt(MCRYPT_RIJNDAEL_256, md5($key), $unencrypted, MCRYPT_MODE_CBC, md5(md5($key))));
+function encrypt($salt, $unencrypted){
+    $encrypted = base64_encode(mcrypt_encrypt(MCRYPT_RIJNDAEL_256, md5($salt), $unencrypted, MCRYPT_MODE_CBC, md5(md5($salt))));
     return $encrypted;
 }
 
 /**
- * decrypt data encrypted with a meta key
+ * decrypt data
  *
- * @param mixed $meta
+ * @param string $salt
  * @param string $encrypted
  * @return mixed $unencrypted
  */
-function decrypt($meta, $encrypted){
-    $key = json_encode($meta, 1);
-    $decrypted = rtrim(mcrypt_decrypt(MCRYPT_RIJNDAEL_256, md5($key), base64_decode($encrypted), MCRYPT_MODE_CBC, md5(md5($key))), "\0");
+function decrypt($salt, $encrypted){
+    $decrypted = rtrim(mcrypt_decrypt(MCRYPT_RIJNDAEL_256, md5($salt), base64_decode($encrypted), MCRYPT_MODE_CBC, md5(md5($salt))), "\0");
     return $decrypted;
 }
 
