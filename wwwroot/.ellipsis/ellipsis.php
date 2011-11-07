@@ -14,6 +14,12 @@
  */
 class Ellipsis {
     /**
+     * graceful exit strategy
+     * @var boolean
+     */
+    private static $graceful = false;
+
+    /**
      * static constructor (manually executed in class file)
      * 
      * @param void
@@ -189,6 +195,9 @@ class Ellipsis {
             self::debug("Execution Time: {$_ENV['EXECUTION_TIME']}s");
         }
 
+        // perform a graceful failure
+        if (self::$graceful) self::fail(404, 'Failed to match any routes ' . time());
+
         // cache output if being saved
         if ($_ENV['CACHE_TIME'] > 0){
             // define the file pair
@@ -295,6 +304,15 @@ class Ellipsis {
                         }
                     }
                     break;
+                case 'REQUEST':
+                    foreach($condition as $key => $val){
+                        $expression = is_regexp('/' . $val . '/U') ? '/' . $val . '/U' : (is_regexp($val) ? $val : null);
+                        if (!isset($_REQUEST[$key]) || !preg_match($expression, $_REQUEST[$key])){
+                            $match = false;
+                            break 3;
+                        }
+                    }
+                    break;
                 case 'COOKIE':
                     foreach($condition as $key => $val){
                         $expression = is_regexp('/' . $val . '/U') ? '/' . $val . '/U' : (is_regexp($val) ? $val : null);
@@ -348,9 +366,12 @@ class Ellipsis {
             'cache'         => null
         );
 
+        // reset graceful failure
+        self::$graceful = false;
+
         if (self::match($route)){
             // load the ellipsis config
-            include "{$_ENV['SCRIPT_ROOT']}/config.php";
+            include_once "{$_ENV['SCRIPT_ROOT']}/config.php";
 
             // find and load the app config(s)
             if (is_file("{$_SERVER['DOCUMENT_ROOT']}/.{$app}/config.php")){
@@ -359,7 +380,7 @@ class Ellipsis {
                     'SCRIPT_ROOT'  => "{$_SERVER['DOCUMENT_ROOT']}/.{$app}",
                     'SCRIPT_LIB'   => "{$_SERVER['DOCUMENT_ROOT']}/.{$app}/lib"
                 );
-                include "{$_SERVER['DOCUMENT_ROOT']}/.{$app}/config.php";
+                include_once "{$_SERVER['DOCUMENT_ROOT']}/.{$app}/config.php";
             }
 
             // process routes
@@ -429,8 +450,8 @@ class Ellipsis {
                 }
             }
 
-            // all other attempts at routing failed
-            self::fail(404, 'Failed to match any routes ' . time());
+            // all other attempts at routing failed, pave the way for a graceful exit
+            self::$graceful = true;
         }
     }
 
