@@ -13,3 +13,6 @@ utils/docblox
 # a place to keep work in progress files
 wip
 
+# ignore svn directories
+*.svn
+
