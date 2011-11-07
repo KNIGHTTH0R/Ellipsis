@@ -491,3 +491,41 @@ function hexascii($hex){
     return $ascii;
 }
 
+/**
+ * returns the jsonp encoded representation of a value
+ *
+ * @param string $jsonp
+ * @param mixed $value
+ * @param integer $options
+ * @return string
+ */
+function jsonp_encode($jsonp, $value, $options = 0){
+    return $jsonp . '(' . json_encode($value, $options) . ');';
+}
+
+/**
+ * encrypt data using a meta key
+ *
+ * @param mixed $meta
+ * @param mixed $unencrypted
+ * @return string $encrypted
+ */
+function encrypt($meta, $unencrypted){
+    $key = json_encode($meta, 1);
+    $encrypted = base64_encode(mcrypt_encrypt(MCRYPT_RIJNDAEL_256, md5($key), $unencrypted, MCRYPT_MODE_CBC, md5(md5($key))));
+    return $encrypted;
+}
+
+/**
+ * decrypt data encrypted with a meta key
+ *
+ * @param mixed $meta
+ * @param string $encrypted
+ * @return mixed $unencrypted
+ */
+function decrypt($meta, $encrypted){
+    $key = json_encode($meta, 1);
+    $decrypted = rtrim(mcrypt_decrypt(MCRYPT_RIJNDAEL_256, md5($key), base64_decode($encrypted), MCRYPT_MODE_CBC, md5(md5($key))), "\0");
+    return $decrypted;
+}
+
