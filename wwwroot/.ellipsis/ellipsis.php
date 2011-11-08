@@ -238,7 +238,7 @@ class Ellipsis {
      * @param integer $mode
      * @return void
      */
-    public static function buffer($buffer, $mode){
+    public static function buffer(string $buffer, integer $mode){
         // catch the errors that weren't catchable
         if (preg_match('/<\/b>:\s*(.+) in <b>(.+)<\/b> on line <b>(.+)<\/b>/U', $buffer, $matches)){
             Ellipsis::parse_error(E_ERROR, $matches[1], $matches[2], $matches[3]);
@@ -331,7 +331,7 @@ class Ellipsis {
      * @param array $route
      * @return boolean
      */
-    public static function match(&$route){
+    public static function match(array &$route){
         // match the conditions of the route
         $match = true;
         foreach($route['conditions'] as $variable => $condition){
@@ -441,7 +441,7 @@ class Ellipsis {
      * @param mixed $conditions
      * @return void
      */
-    public static function run($app, $conditions = array()){
+    public static function run(string $app, array $conditions = array()){
         $route = array(
             'application'   => $app,
             'conditions'    => (is_string($conditions) ? array('URI' => $conditions) : $conditions),
@@ -546,7 +546,7 @@ class Ellipsis {
      * @param integer $seconds
      * @return boolean
      */
-    public static function cache($seconds){
+    public static function cache(integer $seconds){
         if (is_numeric($seconds) && $seconds > 0){
             $_ENV['CACHE_TIME'] = $seconds;
         }
@@ -600,7 +600,7 @@ class Ellipsis {
      * @param string $path
      * @return void
      */
-    public static function load($path){
+    public static function load(string $path){
         // find appropriate mime type
         if (preg_match('/\.php$/', $_SERVER['PATH_INFO'])){
             $mime_type = 'text/html';
@@ -639,7 +639,7 @@ class Ellipsis {
      * @param string $message
      * @return void
      */
-    public static function fail($code, $message = null){
+    public static function fail(integer $code, string $message = null){
         if (isset($_ENV['HTTP_CODE'][$code])){
             self::debug("{$code} - {$message}", $_ENV['HTTP_CODE'][$code]);
             if (isset($_ENV['HTTP_CODE'][$code]['path'])){
@@ -670,7 +670,7 @@ class Ellipsis {
      * @param mixed $data
      * @return void
      */
-    function debug($message, $data = undefined){
+    function debug(string $message, $data = undefined){
         if ($_ENV['DEBUG']){
             if ($data != undefined){
                 ChromePhp::log("{$_SERVER['PATH_INFO']}: {$message}", $data);

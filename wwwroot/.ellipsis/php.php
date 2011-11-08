@@ -15,7 +15,7 @@
  * @param string $class_name
  * @return void
  */
-function ellipsis_autoload($class_name){
+function ellipsis_autoload(string $class_name){
     if (!isset($_ENV['AUTOLOAD'])){
         $_ENV['AUTOLOAD'] = array();
     }
@@ -65,7 +65,7 @@ function is_associative_array(array $array){
  * @param array $array2
  * @return array
  */
-function array_extend($array1, $array2){
+function array_extend(array $array1, array $array2){
     $array1 = (is_array($array1)) ? $array1 : array();
     $array2 = (is_array($array2)) ? $array2 : array();
     foreach($array2 as $k=>$v){
@@ -89,7 +89,7 @@ function array_extend($array1, $array2){
  * @param array $haystack
  * @return boolean
  */
-function preg_array($regexp, $haystack){
+function preg_array(string $regexp, array $haystack){
     // extract each recursive value
     $values = array();
     array_walk_recursive($haystack, create_function('$val, $key, $obj', 'array_push($obj, $val);'), &$values);
@@ -107,7 +107,7 @@ function preg_array($regexp, $haystack){
  * @param string $regexp
  * @return boolean
  */
-function is_regexp($regexp){
+function is_regexp(string $regexp){
     return (@preg_match($regexp, null) !== false);
 }
 
@@ -188,7 +188,7 @@ $inflection_exceptions = array(
  * @param string $noun
  * @return string
  */
-function singularize($noun){
+function singularize(string $noun){
     global $inflection_exceptions;
     $lowercased_noun = strtolower($noun);
 
@@ -220,7 +220,7 @@ function singularize($noun){
  * @param string $noun
  * @return $string
  */
-function pluralize($noun){
+function pluralize(string $noun){
     global $inflection_exceptions;
     $lowercased_noun = strtolower($noun);
 
@@ -253,7 +253,8 @@ function pluralize($noun){
  * @param array $excludes ('*' is wild)
  * @return array
  */
-function scandir_recursive($directory, $format = 'absolute', $excludes = null){
+function scandir_recursive(string $directory, string $format = null, array $excludes = array()){
+    $format = ($format == null) ? 'absolute' : $format;
     $paths = array();
     $stack[] = $directory;
     while($stack){
@@ -277,7 +278,7 @@ function scandir_recursive($directory, $format = 'absolute', $excludes = null){
             }
         }
     }
-    if ($excludes != null && is_array($excludes)){
+    if (count($excludes) > 0){
         $clean = array();
         foreach($paths as $path){
             $remove = false;
@@ -352,7 +353,7 @@ $_ENV['MIME_TYPES'] = array(
  * @return string|null
  * 
  */
-function getextension($path)
+function getextension(string $path)
 {
 	$extension = null;
     if (preg_match('/\.([a-z0-9]+)$/', $path, $found)){
@@ -367,7 +368,7 @@ function getextension($path)
  * @param string $path
  * @return string|null
  */
-function getfiletype($path){
+function getfiletype(string $path){
 	$extension = getextension($path);
 	if($extension!=null)
 	{
@@ -386,7 +387,7 @@ function getfiletype($path){
  * @param string $path
  * @return string
  */
-function getmimetype($path){
+function getmimetype(string $path){
 	$extension = getextension($path);
     $filetype = getfiletype($path);
     if ($filetype != null){
@@ -402,7 +403,7 @@ function getmimetype($path){
  * @param string $path
  * @return boolean
  */
-function touch_recursive($path){
+function touch_recursive(string $path){
     if (!preg_match('/^' . preg_quote($_SERVER['DOCUMENT_ROOT'], '/') . '/', $path)){
         // for safety's sake
         return false;
@@ -422,7 +423,7 @@ function touch_recursive($path){
  * @param string $hex
  * @retrun array
  */
-function hexrgb($hex){
+function hexrgb(string $hex){
     $hex = ($hex[0] == '#') ? substr($hex, 1) : $hex;
 
     if (strlen($hex) == 3){
@@ -446,7 +447,7 @@ function hexrgb($hex){
  * @param integer $b
  * @return string
  */
-function rgbhex($r, $g, $b){
+function rgbhex(integer $r, integer $g, integer $b){
     $r  = intval($r);
     $g  = intval($g);
     $b  = intval($b);
@@ -467,7 +468,7 @@ function rgbhex($r, $g, $b){
  * @param string $ascii
  * @return string
  */
-function asciihex($ascii){
+function asciihex(string $ascii){
     $length = strlen($ascii);
     $hex = '';
     for ($i = 0; $i < $length; $i++){
@@ -482,7 +483,7 @@ function asciihex($ascii){
  * @param string $hex
  * @return string
  */
-function hexascii($hex){
+function hexascii(string $hex){
     $length = strlen($hex);
     $ascii = '';
     for ($i = 0; $i < $length; $i+=2){
@@ -499,7 +500,8 @@ function hexascii($hex){
  * @param integer $options
  * @return string
  */
-function jsonp_encode($jsonp, $value, $options = 0){
+function jsonp_encode(string $jsonp, $value, integer $options = null){
+    $option = ($options != null) ? 0 : $options;
     return $jsonp . '(' . json_encode($value, $options) . ');';
 }
 
@@ -510,7 +512,7 @@ function jsonp_encode($jsonp, $value, $options = 0){
  * @param mixed $unencrypted
  * @return string $encrypted
  */
-function encrypt($salt, $unencrypted){
+function encrypt(string $salt, $unencrypted){
     $encrypted = base64_encode(mcrypt_encrypt(MCRYPT_RIJNDAEL_256, md5($salt), $unencrypted, MCRYPT_MODE_CBC, md5(md5($salt))));
     return $encrypted;
 }
@@ -522,7 +524,7 @@ function encrypt($salt, $unencrypted){
  * @param string $encrypted
  * @return mixed $unencrypted
  */
-function decrypt($salt, $encrypted){
+function decrypt(string $salt, string $encrypted){
     $decrypted = rtrim(mcrypt_decrypt(MCRYPT_RIJNDAEL_256, md5($salt), base64_decode($encrypted), MCRYPT_MODE_CBC, md5(md5($salt))), "\0");
     return $decrypted;
 }
