@@ -20,6 +20,12 @@ class Ellipsis {
     private static $graceful = false;
 
     /**
+     * errors
+     * @var array
+     */
+    private static $errors = array();
+
+    /**
      * static constructor (manually executed in class file)
      * 
      * @param void
@@ -169,16 +175,82 @@ class Ellipsis {
             )
         );
 
-        // set PATH_INFO which has been deprecated, but is really useful still
+        // reset PATH_INFO (this was deprecated in PHP)
         $_SERVER['PATH_INFO'] = preg_replace('/\?.*$/', '', $_SERVER['REQUEST_URI']);
 
-        // start buffering so we can output header data during output
-        if (!ob_start('ob_gzhandler')) ob_start();
+        // start outer buffer
+        ob_start();
 
-        // ensure that our destructor function is run
-        register_shutdown_function(function(){
-            Ellipsis::destruct();
-        });
+        // start inner buffer
+        ob_start(array('Ellipsis', 'buffer'));
+
+        // parse errors for pretty output
+        set_error_handler(array('Ellipsis', 'parse_error'), E_ALL);
+
+        // ensure that our destructor function gets run
+        register_shutdown_function(array('Ellipsis', 'destruct'));
+    }
+
+    /**
+     * parse errors
+     *
+     * @param integer $error_number
+     * @param string $error_message
+     * @param string $error_file
+     * @param integer $error_line
+     * @param array $error_context
+     * @return void
+     */
+    public static function parse_error($error_number, $error_message, $error_file = null, $error_line = null, $error_context = null){
+        $error_types = array(
+            E_ERROR             => 'Fatal Error',
+            E_WARNING           => 'Warning',
+            E_PARSE             => 'Parse Error',
+            E_NOTICE            => 'Notice',
+            E_CORE_ERROR        => 'Fatal Core Error',
+            E_CORE_WARNING      => 'Core Warning',
+            E_COMPILE_ERROR     => 'Compilation Error',
+            E_COMPILE_WARNING   => 'Compilation Warning',
+            E_USER_ERROR        => 'Triggered Error',
+            E_USER_WARNING      => 'Triggered Warning',
+            E_USER_NOTICE       => 'Triggered Notice',
+            E_STRICT            => 'Deprecation Notice',
+            E_RECOVERABLE_ERROR => 'Catchable Fatal Error'
+        );
+        $error = array(
+            'number'    => $error_number,
+            'message'   => $error_message,
+            'file'      => $error_file,
+            'line'      => $error_line,
+            'context'   => $error_context,
+            'type'      => $error_types[$error_number]
+        );
+        self::$errors[] = $error;
+        return false;
+    }
+
+    /**
+     * buffer output
+     *
+     * @todo reintroduce gzip handling
+     *
+     * @param string $buffer
+     * @param integer $mode
+     * @return void
+     */
+    public static function buffer($buffer, $mode){
+        // catch the errors that weren't catchable
+        if (preg_match('/<\/b>:\s*(.+) in <b>(.+)<\/b> on line <b>(.+)<\/b>/U', $buffer, $matches)){
+            Ellipsis::parse_error(E_ERROR, $matches[1], $matches[2], $matches[3]);
+        }
+
+        // if there were errors, let that be the only output
+        if (count(self::$errors) > 0){
+            $buffer = '';
+        }
+
+        // return whatever buffer is applicable
+        return $buffer;
     }
 
     /**
@@ -188,6 +260,19 @@ class Ellipsis {
      * @return void
      */
     public static function destruct(){
+        // flush inner buffer
+        ob_end_flush();
+
+        // test for error encounters
+        if (count(self::$errors) > 0){
+            echo "<h1>Internal Error" . (count(self::$errors) > 1 ? "s" : "") . "</h1>";
+            foreach(self::$errors as $error){
+                echo "<h3>{$error['type']}</h3>";
+                echo "<div>{$error['message']} in {$error['file']} on line {$error['line']}</div>";
+            }
+            exit;
+        }
+        
         // compute total execution time for performance tuners
         if ($_ENV['DEBUG']){
             $_ENV['STOP_TIME'] = microtime(true);
@@ -235,7 +320,7 @@ class Ellipsis {
             }
         }
 
-        // finally, let nature take its course
+        // flush outer buffer and let nature take its course
         ob_end_flush();
         exit;
     }
