@@ -1,6 +1,47 @@
 #!/usr/bin/php
 <?php
 
+// needed for array_extend and scandir_recursive
+$base = dirname(__FILE__) . '/wwwroot';
+include $base . '/.ellipsis/php.php';
+
+/**
+ * collect command-line arguments
+ *
+ * @param string $app
+ * @param string $tests (comma separated)
+ * @param string $mock
+ * @return void
+ */
+if (count($argv) >= 3){
+    $app   = $argv[1];
+    $tests = explode(',', $argv[2]);
+    $mock  = (count($argv) >= 4) ? $argv[3] : null;
+
+    // @todo: preload a default mock, before overriding
+    //include $base_mock;
+    
+    // mock a required environment
+    if ($mock != null) include $mock;
+    print '<pre>' . print_r($_ENV['MOCK'], true) . '</pre>';
+    foreach($_ENV['MOCK'] as $key => $val){
+        $$key = array_extend($$key, $val);
+    }
+
+    // load simpletest
+    require_once(dirname(__FILE__) . '/utils/simpletest/unit_tester.php');
+    require_once(dirname(__FILE__) . '/utils/simpletest/reporter.php');
+
+    // populate the test suite
+    $suite = new TestSuite($app . ' tests');
+    //print '<pre>' . print_r($suite, true) . '</pre>';
+    foreach($tests as $test){
+        $suite->addFile($test);
+    }
+    $suite->run(new TextReporter());
+    exit;
+}
+
 /**
  * run unit tests for ellipsis applications
  */
@@ -10,27 +51,25 @@ $dirs = scandir($base);
 $apps = array();
 $ellipsis = false;
 
-include $base . '/.ellipsis/php.php';
-
 foreach($dirs as $dir){
     if (is_dir($base . '/' . $dir . '/tests') && preg_match('/^\.[^\.]+$/', $dir)){
         if ($dir == '.ellipsis') $ellipsis = true;
-        $apps[$dir] = scandir_recursive($base . '/' . $dir . '/tests');
+        $apps[$dir] = scandir_recursive($base . '/' . $dir . '/tests', null, array('.git', '.svn', 'mock.php'));
     }
 }
 
 if ($ellipsis){
-    require_once(dirname(__FILE__) . '/utils/simpletest/unit_tester.php');
-    require_once(dirname(__FILE__) . '/utils/simpletest/reporter.php');
-
     foreach($apps as $key => $val){
-        $name = substr($key, 1);
-        $suite = new TestSuite($name . ' tests');
-        //print '<pre>' . print_r($suite, true) . '</pre>';
-        foreach($val as $test){
-            $suite->addFile($test);
-        }
-        $suite->run(new TextReporter());
+        // build params
+        $mock_file = $base . '/' . $key . '/tests/mock.php';
+        $app       = substr($key, 1);
+        $tests     = implode(',', $val);
+        $mock      = is_readable($mock_file) ? $mock_file : '';
+
+        // execute test
+        chdir(dirname(__FILE__));
+        $result = system("./runtests {$app} {$tests} {$mock}");
     }
 }
+
 
