@@ -15,7 +15,7 @@
  * @param string $class_name
  * @return void
  */
-function ellipsis_autoload(string $class_name){
+function ellipsis_autoload($class_name){
     if (!isset($_ENV['AUTOLOAD'])){
         $_ENV['AUTOLOAD'] = array();
     }
@@ -89,7 +89,7 @@ function array_extend(array $array1, array $array2){
  * @param array $haystack
  * @return boolean
  */
-function preg_array(string $regexp, array $haystack){
+function preg_array($regexp, array $haystack){
     // extract each recursive value
     $values = array();
     array_walk_recursive($haystack, create_function('$val, $key, $obj', 'array_push($obj, $val);'), &$values);
@@ -107,7 +107,7 @@ function preg_array(string $regexp, array $haystack){
  * @param string $regexp
  * @return boolean
  */
-function is_regexp(string $regexp){
+function is_regexp($regexp){
     return (@preg_match($regexp, null) !== false);
 }
 
@@ -188,7 +188,7 @@ $inflection_exceptions = array(
  * @param string $noun
  * @return string
  */
-function singularize(string $noun){
+function singularize($noun){
     global $inflection_exceptions;
     $lowercased_noun = strtolower($noun);
 
@@ -220,7 +220,7 @@ function singularize(string $noun){
  * @param string $noun
  * @return $string
  */
-function pluralize(string $noun){
+function pluralize($noun){
     global $inflection_exceptions;
     $lowercased_noun = strtolower($noun);
 
@@ -253,7 +253,7 @@ function pluralize(string $noun){
  * @param array $excludes ('*' is wild)
  * @return array
  */
-function scandir_recursive(string $directory, string $format = null, array $excludes = array()){
+function scandir_recursive($directory, $format = null, array $excludes = array()){
     $format = ($format == null) ? 'absolute' : $format;
     $paths = array();
     $stack[] = $directory;
@@ -353,7 +353,7 @@ $_ENV['MIME_TYPES'] = array(
  * @return string|null
  * 
  */
-function getextension(string $path)
+function getextension($path)
 {
 	$extension = null;
     if (preg_match('/\.([a-z0-9]+)$/', $path, $found)){
@@ -368,7 +368,7 @@ function getextension(string $path)
  * @param string $path
  * @return string|null
  */
-function getfiletype(string $path){
+function getfiletype($path){
 	$extension = getextension($path);
 	if($extension!=null)
 	{
@@ -387,7 +387,7 @@ function getfiletype(string $path){
  * @param string $path
  * @return string
  */
-function getmimetype(string $path){
+function getmimetype($path){
 	$extension = getextension($path);
     $filetype = getfiletype($path);
     if ($filetype != null){
@@ -403,7 +403,7 @@ function getmimetype(string $path){
  * @param string $path
  * @return boolean
  */
-function touch_recursive(string $path){
+function touch_recursive($path){
     if (!preg_match('/^' . preg_quote($_SERVER['DOCUMENT_ROOT'], '/') . '/', $path)){
         // for safety's sake
         return false;
@@ -423,7 +423,7 @@ function touch_recursive(string $path){
  * @param string $hex
  * @retrun array
  */
-function hexrgb(string $hex){
+function hexrgb($hex){
     $hex = ($hex[0] == '#') ? substr($hex, 1) : $hex;
 
     if (strlen($hex) == 3){
@@ -447,7 +447,7 @@ function hexrgb(string $hex){
  * @param integer $b
  * @return string
  */
-function rgbhex(integer $r, integer $g, integer $b){
+function rgbhex($r, $g, $b){
     $r  = intval($r);
     $g  = intval($g);
     $b  = intval($b);
@@ -468,7 +468,7 @@ function rgbhex(integer $r, integer $g, integer $b){
  * @param string $ascii
  * @return string
  */
-function asciihex(string $ascii){
+function asciihex($ascii){
     $length = strlen($ascii);
     $hex = '';
     for ($i = 0; $i < $length; $i++){
@@ -483,7 +483,7 @@ function asciihex(string $ascii){
  * @param string $hex
  * @return string
  */
-function hexascii(string $hex){
+function hexascii($hex){
     $length = strlen($hex);
     $ascii = '';
     for ($i = 0; $i < $length; $i+=2){
@@ -500,7 +500,7 @@ function hexascii(string $hex){
  * @param integer $options
  * @return string
  */
-function jsonp_encode(string $jsonp, $value, integer $options = null){
+function jsonp_encode($jsonp, $value, $options = null){
     $option = ($options != null) ? 0 : $options;
     return $jsonp . '(' . json_encode($value, $options) . ');';
 }
@@ -512,7 +512,7 @@ function jsonp_encode(string $jsonp, $value, integer $options = null){
  * @param mixed $unencrypted
  * @return string $encrypted
  */
-function encrypt(string $salt, $unencrypted){
+function encrypt($salt, $unencrypted){
     $encrypted = base64_encode(mcrypt_encrypt(MCRYPT_RIJNDAEL_256, md5($salt), $unencrypted, MCRYPT_MODE_CBC, md5(md5($salt))));
     return $encrypted;
 }
@@ -524,7 +524,7 @@ function encrypt(string $salt, $unencrypted){
  * @param string $encrypted
  * @return mixed $unencrypted
  */
-function decrypt(string $salt, string $encrypted){
+function decrypt($salt, $encrypted){
     $decrypted = rtrim(mcrypt_decrypt(MCRYPT_RIJNDAEL_256, md5($salt), base64_decode($encrypted), MCRYPT_MODE_CBC, md5(md5($salt))), "\0");
     return $decrypted;
 }
