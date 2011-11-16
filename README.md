@@ -45,6 +45,7 @@ Install Ellipsis (this framework)
 
 Install Simpletest (to run unit tests)
 
+    mkdir ~/Projects/your_project/utils
     cd ~/Projects/your_project/utils
     svn co https://simpletest.svn.sourceforge.net/svnroot/simpletest/simpletest/trunk simpletest
 
