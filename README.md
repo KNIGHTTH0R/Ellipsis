@@ -41,7 +41,7 @@ Create a local project folder
 Install Ellipsis (this framework)
 
     cd ~/Projects/your_project
-    git clone https://github.com/tobius/Ellipsis.git
+    git clone https://github.com/tobius/Ellipsis.git .
 
 Install Simpletest (to run unit tests)
 
