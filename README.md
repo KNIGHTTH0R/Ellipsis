@@ -49,11 +49,6 @@ Install Simpletest (to run unit tests)
     cd ~/Projects/your_project/utils
     svn co https://simpletest.svn.sourceforge.net/svnroot/simpletest/simpletest/trunk simpletest
 
-Install vfsStream (to create virtual file systems for unit test)
-
-    cd ~/Projects/your_project/utils
-    git clone https://github.com/mikey179/vfsStream.git vfsstream
-
 Install Docblox (to generate php api documentation)
 
     cd ~/Projects/your_project/utils
