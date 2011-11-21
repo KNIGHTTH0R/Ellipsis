@@ -14,5 +14,6 @@ require_once './.ellipsis/ellipsis.php';
 
 // run application(s)
 Ellipsis::run('default');
+//Ellipsis::run('default', array('SERVER' => array('HTTP_HOST' => 'local.ellipsis.com')));
 
 ?>
