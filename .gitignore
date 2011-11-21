@@ -16,3 +16,5 @@ wip
 # ignore svn directories
 *.svn
 
+# ignore eclipse .project files
+.project
