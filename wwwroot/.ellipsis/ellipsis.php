@@ -670,9 +670,9 @@ class Ellipsis {
      * @param mixed $data
      * @return void
      */
-    function debug($message, $data = undefined){
+    function debug($message, $data = null){
         if ($_ENV['DEBUG']){
-            if ($data != undefined){
+            if ($data != null){
                 ChromePhp::log("{$_SERVER['PATH_INFO']}: {$message}", $data);
             } else {
                 ChromePhp::log("{$_SERVER['PATH_INFO']}: {$message}");
