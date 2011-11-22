@@ -41,17 +41,13 @@ Create a local project folder
 Install Ellipsis (this framework)
 
     cd ~/Projects/your_project
-    git clone https://github.com/tobius/Ellipsis.git
+    git clone https://github.com/tobius/Ellipsis.git .
 
 Install Simpletest (to run unit tests)
 
+    mkdir ~/Projects/your_project/utils
     cd ~/Projects/your_project/utils
     svn co https://simpletest.svn.sourceforge.net/svnroot/simpletest/simpletest/trunk simpletest
-
-Install vfsStream (to create virtual file systems for unit test)
-
-    cd ~/Projects/your_project/utils
-    git clone https://github.com/mikey179/vfsStream.git vfsstream
 
 Install Docblox (to generate php api documentation)
 
