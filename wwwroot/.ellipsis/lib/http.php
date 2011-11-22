@@ -331,10 +331,13 @@ class HTTP {
      * @return array
      */
     private function deserializeHeaders($headers){
-		// $cookes usually usually comes in as an indexed array here.
-		if (is_array($cookies)){
-			$cookies = implode(';', $cookies);
+        // @todo: re-test this because it seems to have been broken in the past
+        // and not properly tested to see what cURL actually does return to us
+        /*
+		if (is_array($headers)){
+            $headers = implode(';', $headers);
 		}
+         */
 		
         if (is_string($headers)){
             $hash = array();
