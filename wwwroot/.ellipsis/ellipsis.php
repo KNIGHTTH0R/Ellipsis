@@ -45,6 +45,7 @@ class Ellipsis {
                 'SCRIPT_ROOT'   => __DIR__,
                 'SCRIPT_LIB'    => __DIR__ . '/lib',
                 'DEBUG'         => true,
+                'DEBUG_PROXY'   => null,
                 'CURRENT'       => null,
                 'APPS'          => array(),
                 'ROUTES'        => array(),
