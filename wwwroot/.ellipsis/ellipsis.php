@@ -274,11 +274,16 @@ class Ellipsis {
             exit;
         }
         
-        // compute total execution time for performance tuners
+        // compute total execution time and peak memory usage for performance tuners
         if ($_ENV['DEBUG']){
             $_ENV['STOP_TIME'] = microtime(true);
             $_ENV['EXECUTION_TIME'] = $_ENV['STOP_TIME'] - $_ENV['START_TIME'];
             self::debug("Execution Time: {$_ENV['EXECUTION_TIME']}s");
+
+            $units = array('b', 'kb', 'mb', 'gb', 'tb', 'pb');
+            $memory = memory_get_peak_usage(true);
+            $_ENV['PEAK_MEMORY_USAGE'] = round($memory / pow(1024, ($i = floor(log($memory, 1024)))), 2) . ' ' . $units[$i];
+            self::debug("Peak Memory Usage: {$_ENV['PEAK_MEMORY_USAGE']}");
         }
 
         // perform a graceful failure
