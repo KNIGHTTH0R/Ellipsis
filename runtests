@@ -13,7 +13,7 @@ include $base . '/.ellipsis/php.php';
  * @param string $mock
  * @return void
  */
-if (count($argv) >= 3){
+if (count($argv) >= 2){
     $app   = $argv[1];
     $tests = explode(',', $argv[2]);
     $mock  = (count($argv) >= 4) ? $argv[3] : null;
@@ -22,11 +22,15 @@ if (count($argv) >= 3){
     //include $base_mock;
     
     // mock a required environment
-    if ($mock != null) include $mock;
-    print '<pre>' . print_r($_ENV['MOCK'], true) . '</pre>';
-    foreach($_ENV['MOCK'] as $key => $val){
-        $$key = array_extend($$key, $val);
-    }
+    if ($mock != null){
+        include $mock;
+        if(isset($_ENV['MOCK'])){
+            print '<pre>' . print_r($_ENV['MOCK'], true) . '</pre>';
+            foreach($_ENV['MOCK'] as $key => $val){
+                $$key = array_extend($$key, $val);
+            }        
+        }
+    } 
 
     // load simpletest
     require_once(dirname(__FILE__) . '/utils/simpletest/unit_tester.php');
@@ -68,7 +72,8 @@ if ($ellipsis){
 
         // execute test
         chdir(dirname(__FILE__));
-        $result = system("./runtests {$app} {$tests} {$mock}");
+        print "running: php runtests {$app} {$tests} {$mock}<br />\n";
+        $result = system("php runtests {$app} {$tests} {$mock}");
     }
 }
 

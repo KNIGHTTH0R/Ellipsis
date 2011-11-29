@@ -203,6 +203,9 @@ class Ellipsis {
      * @return void
      */
     public static function parse_error($error_number, $error_message, $error_file = null, $error_line = null, $error_context = null){
+        $reporting = ini_get('error_reporting');
+        if(!($reporting & $error_number)) return false;
+
         $error_types = array(
             E_ERROR             => 'Fatal Error',
             E_WARNING           => 'Warning',
