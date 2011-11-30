@@ -1,6 +1,21 @@
 #!/usr/bin/php
 <?php
 
+include "utils/cli.php";
+CLI::process("
+    Usage:
+        rundocs
+
+    Description:
+        Run the auto documentation script against this Ellipsis installation and output the results to http://sitename/docs/index.html.
+
+    Options:
+        none
+
+    Arguments:
+        none
+");
+
 /**
  * generate documentation for ellipsis applications
  */
@@ -20,7 +35,6 @@ foreach($dirs as $dir){
 if ($ellipsis){
     $bin = dirname(__FILE__) . '/utils/docblox/bin/docblox.php';
     $cmd = "php $bin run --force --title \"Ellipsis Docs\" --defaultpackagename \"unknown\" --ignore \"*/temp/*,*/tmp/*,*.bak*\" -d \"$base/" . implode("\",\"$base/", $apps) . "\" -t \"$base/docs\"";
-    //echo $cmd;exit;
     system($cmd);
 }
 
