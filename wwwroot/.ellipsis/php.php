@@ -54,7 +54,7 @@ spl_autoload_register('ellipsis_autoload');
  * @param array $array
  * @return boolean
  */
-function is_associative_array(array $array){
+function is_associative_array($array){
     if (!is_array($array) || empty($array)) return false;
     $keys = array_keys($array);
     return array_keys($keys) !== $keys;
@@ -67,7 +67,7 @@ function is_associative_array(array $array){
  * @param array $array2
  * @return array
  */
-function array_extend(array $array1, array $array2){
+function array_extend($array1, $array2){
     $array1 = (is_array($array1)) ? $array1 : array();
     $array2 = (is_array($array2)) ? $array2 : array();
     foreach($array2 as $k=>$v){
@@ -91,7 +91,7 @@ function array_extend(array $array1, array $array2){
  * @param array $haystack
  * @return boolean
  */
-function preg_array($regexp, array $haystack){
+function preg_array($regexp, $haystack){
     // extract each recursive value
     $values = array();
     array_walk_recursive($haystack, create_function('$val, $key, $obj', 'array_push($obj, $val);'), &$values);
@@ -255,7 +255,7 @@ function pluralize($noun){
  * @param array $excludes ('*' is wild)
  * @return array
  */
-function scandir_recursive($directory, $format = null, array $excludes = array()){
+function scandir_recursive($directory, $format = null, $excludes = array()){
     $format = ($format == null) ? 'absolute' : $format;
     $paths = array();
     $stack[] = $directory;
