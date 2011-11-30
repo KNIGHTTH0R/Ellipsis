@@ -72,8 +72,9 @@ if ($ellipsis){
 
         // execute test
         chdir(dirname(__FILE__));
-        print "running: php runtests {$app} {$tests} {$mock}<br />\n";
-        $result = system("php runtests {$app} {$tests} {$mock}");
+        $command = "php runtests {$app} {$tests} {$mock}";
+        print "running: {$command}\n";
+        $result = system($command);
     }
 }
 
