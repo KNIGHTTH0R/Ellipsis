@@ -36,7 +36,7 @@ class Ellipsis {
         $_ENV['START_TIME'] = microtime(true);
 
         // include additional PHP functions
-        include __DIR__ . '/php.php';
+        include dirname(__FILE__) . '/php.php';
 
         // configure system defaults using super globals
         $_ENV = array_merge($_ENV, 
