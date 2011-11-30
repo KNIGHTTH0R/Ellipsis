@@ -6,8 +6,37 @@ CLI::process("
     Usage:
         runtests
 
+<<<<<<< HEAD
     Description:
         Run the auto documentation script against this Ellipsis installation and output the results to http://sitename/docs/index.html.
+=======
+/**
+ * collect command-line arguments
+ *
+ * @param string $app
+ * @param string $tests (comma separated)
+ * @param string $mock
+ * @return void
+ */
+if (count($argv) >= 2){
+    $app   = $argv[1];
+    $tests = explode(',', $argv[2]);
+    $mock  = (count($argv) >= 4) ? $argv[3] : null;
+
+    // @todo: preload a default mock, before overriding
+    //include $base_mock;
+    
+    // mock a required environment
+    if ($mock != null){
+        include $mock;
+        if(isset($_ENV['MOCK'])){
+            print '<pre>' . print_r($_ENV['MOCK'], true) . '</pre>';
+            foreach($_ENV['MOCK'] as $key => $val){
+                $$key = array_extend($$key, $val);
+            }        
+        }
+    } 
+>>>>>>> 1f15a1274d4857142e3582997ccf247af099d107
 
     Options:
         [-c, --cmd]         Run in command mode (defaults to web mode)
@@ -35,6 +64,7 @@ if ($_ENV['opts']['single']){
                 require_once('utils/simpletest/unit_tester.php');
                 require_once('utils/simpletest/reporter.php');
 
+<<<<<<< HEAD
                 // create the test suite
                 $suite = new TestSuite($_ENV['opts']['single'] . ' tests');
                 foreach($tests as $test){
@@ -62,6 +92,13 @@ if ($_ENV['opts']['single']){
                 $result = system('./runtests ' . ($_ENV['opts']['cmd'] ? '-c ' : '') . '-s ' . substr(basename($app), 1));
             }
         }
+=======
+        // execute test
+        chdir(dirname(__FILE__));
+        $command = "php runtests {$app} {$tests} {$mock}";
+        print "running: {$command}\n";
+        $result = system($command);
+>>>>>>> 1f15a1274d4857142e3582997ccf247af099d107
     }
 }
 
