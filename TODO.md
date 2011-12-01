@@ -33,4 +33,5 @@ Other
 --------------------------------------------------------------------------------
 - Bake auto mode for Charles into the codebase for debug mode
 - Reintroduce custom error pages (took out temporarily to account for full array of error code testing)
+- Rework docs to support Minimum and Recommended requirements that include more than tech such as "skills"
 
