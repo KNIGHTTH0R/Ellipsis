@@ -59,7 +59,7 @@ if ($_ENV['opts']['single']){
             $temp = basename($app);
             if (preg_match('/^\.([a-z0-9_-]+)$/', $temp) && !in_array($temp, array('.', '..', '.cached'))){
                 echo ">>$temp\n";
-                $result = system('./runtests ' . ($_ENV['opts']['cmd'] ? '-c ' : '') . '-s ' . substr(basename($app), 1));
+                $result = system('php runtests ' . ($_ENV['opts']['cmd'] ? '-c ' : '') . '-s ' . substr(basename($app), 1));
             }
         }
     }
