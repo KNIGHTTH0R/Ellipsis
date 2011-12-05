@@ -10,9 +10,10 @@
  * @package ellipsis
  */
 
-require_once './.ellipsis/ellipsis.php';
+require_once $_SERVER['DOCUMENT_ROOT'] . '/.ellipsis/ellipsis.php';
 
 // run application(s)
 Ellipsis::run('default');
+//Ellipsis::run('default', array('SERVER' => array('HTTP_HOST' => 'local.ellipsis.com')));
 
 ?>

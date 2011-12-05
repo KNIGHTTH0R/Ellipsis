@@ -36,7 +36,7 @@ class Ellipsis {
         $_ENV['START_TIME'] = microtime(true);
 
         // include additional PHP functions
-        include __DIR__ . '/php.php';
+        include_once(dirname(__FILE__) . '/php.php');
 
         // configure system defaults using super globals
         $_ENV = array_merge($_ENV, 
@@ -45,6 +45,7 @@ class Ellipsis {
                 'SCRIPT_ROOT'   => __DIR__,
                 'SCRIPT_LIB'    => __DIR__ . '/lib',
                 'DEBUG'         => true,
+                'DEBUG_PROXY'   => null,
                 'CURRENT'       => null,
                 'APPS'          => array(),
                 'ROUTES'        => array(),
@@ -202,6 +203,9 @@ class Ellipsis {
      * @return void
      */
     public static function parse_error($error_number, $error_message, $error_file = null, $error_line = null, $error_context = null){
+        $reporting = ini_get('error_reporting');
+        if(!($reporting & $error_number)) return false;
+
         $error_types = array(
             E_ERROR             => 'Fatal Error',
             E_WARNING           => 'Warning',
@@ -273,11 +277,16 @@ class Ellipsis {
             exit;
         }
         
-        // compute total execution time for performance tuners
+        // compute total execution time and peak memory usage for performance tuners
         if ($_ENV['DEBUG']){
             $_ENV['STOP_TIME'] = microtime(true);
             $_ENV['EXECUTION_TIME'] = $_ENV['STOP_TIME'] - $_ENV['START_TIME'];
             self::debug("Execution Time: {$_ENV['EXECUTION_TIME']}s");
+
+            $units = array('b', 'kb', 'mb', 'gb', 'tb', 'pb');
+            $memory = memory_get_peak_usage(true);
+            $_ENV['PEAK_MEMORY_USAGE'] = round($memory / pow(1024, ($i = floor(log($memory, 1024)))), 2) . ' ' . $units[$i];
+            self::debug("Peak Memory Usage: {$_ENV['PEAK_MEMORY_USAGE']}");
         }
 
         // perform a graceful failure
@@ -670,9 +679,9 @@ class Ellipsis {
      * @param mixed $data
      * @return void
      */
-    function debug($message, $data = undefined){
+    function debug($message, $data = null){
         if ($_ENV['DEBUG']){
-            if ($data != undefined){
+            if ($data != null){
                 ChromePhp::log("{$_SERVER['PATH_INFO']}: {$message}", $data);
             } else {
                 ChromePhp::log("{$_SERVER['PATH_INFO']}: {$message}");

@@ -12,6 +12,8 @@
 /**
  * autoload static library classes
  *
+ * @todo Move this functionality into the Ellipsis class file
+ *
  * @param string $class_name
  * @return void
  */
@@ -52,7 +54,7 @@ spl_autoload_register('ellipsis_autoload');
  * @param array $array
  * @return boolean
  */
-function is_associative_array(array $array){
+function is_associative_array($array){
     if (!is_array($array) || empty($array)) return false;
     $keys = array_keys($array);
     return array_keys($keys) !== $keys;
@@ -65,7 +67,7 @@ function is_associative_array(array $array){
  * @param array $array2
  * @return array
  */
-function array_extend(array $array1, array $array2){
+function array_extend($array1, $array2){
     $array1 = (is_array($array1)) ? $array1 : array();
     $array2 = (is_array($array2)) ? $array2 : array();
     foreach($array2 as $k=>$v){
@@ -89,7 +91,7 @@ function array_extend(array $array1, array $array2){
  * @param array $haystack
  * @return boolean
  */
-function preg_array($regexp, array $haystack){
+function preg_array($regexp, $haystack){
     // extract each recursive value
     $values = array();
     array_walk_recursive($haystack, create_function('$val, $key, $obj', 'array_push($obj, $val);'), &$values);
@@ -253,7 +255,7 @@ function pluralize($noun){
  * @param array $excludes ('*' is wild)
  * @return array
  */
-function scandir_recursive($directory, $format = null, array $excludes = array()){
+function scandir_recursive($directory, $format = null, $excludes = array()){
     $format = ($format == null) ? 'absolute' : $format;
     $paths = array();
     $stack[] = $directory;
@@ -527,5 +529,50 @@ function encrypt($salt, $unencrypted){
 function decrypt($salt, $encrypted){
     $decrypted = rtrim(mcrypt_decrypt(MCRYPT_RIJNDAEL_256, md5($salt), base64_decode($encrypted), MCRYPT_MODE_CBC, md5(md5($salt))), "\0");
     return $decrypted;
+}
+
+/**
+ * pretend to be a web environment
+ *
+ * note: this is useful for running cli unit tests
+ *
+ * @param string $domain
+ * @param string $uri
+ * @return void
+ */
+function pretend($domain = 'local.ellipsis.com', $uri = '/index.php'){
+    $wwwroot = preg_replace('/\/.ellipsis$/', '', dirname(__FILE__));
+    $_SERVER = array_merge(
+        $_SERVER,
+        array(
+            'HTTP_HOST'             => $domain,
+            'HTTP_CONNECTION'       => 'keep-alive',
+            'HTTP_USER_AGENT'       => 'Mozilla/5.0 (Macintosh; Intel Mac OSX 10_6_8) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.121 Safari/535.2',
+            'HTTP_ACCEPT'           => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'HTTP_ACCEPT_ENCODING'  => 'gzip,deflate,sdch',
+            'HTTP_ACCEPT_LANGUAGE'  => 'en-US,en;q=0.8',
+            'HTTP_ACCEPT_CHARSET'   => 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
+            'SERVER_SIGNATURE'      => '',
+            'SERVER_SOFTWARE'       => 'Apache/2.2.14 (Unix) DAV/2 mod_ssl/2.2.14 OpenSSL/0.9.8l PHP/5.3.1 mod_perl/2.0.4 Perl/v5.10.1',
+            'SERVER_NAME'           => $domain,
+            'SERVER_ADDR'           => '127.0.0.1',
+            'SERVER_PORT'           => '80',
+            'REMOTE_ADDR'           => '127.0.0.1',
+            'DOCUMENT_ROOT'         => $wwwroot,
+            'SERVER_ADMIN'          => 'root@localhost.com',
+            'SCRIPT_FILENAME'       => "{$wwwroot}/.bootstrap.php",
+            'REMOTE_PORT'           => '51212',
+            'REDIRECT_URL'          => $uri,
+            'GATEWAY_INTERFACE'     => 'CGI/1.1',
+            'SERVER_PROTOCOL'       => 'HTTP/1.1',
+            'REQUEST_METHOD'        => 'GET',
+            'QUERY_STRING'          => '',
+            'REQUEST_URI'           => $uri,
+            'SCRIPT_NAME'           => '/.bootstrap.php',
+            'PHP_SELF'              => '/.bootstrap.php'
+        )
+    );
+    $_ENV = array_merge($_ENV, array('USERNAME' => $_ENV['USER']));
+    //print '<pre>' . print_r(array($_SERVER, $_ENV), true) . '</pre>';
 }
 

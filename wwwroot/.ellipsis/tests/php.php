@@ -9,6 +9,125 @@
  * @subpackage tests
  */
 class TestOfPhp extends UnitTestCase {
+
+	function setUp(){
+		// global configurations
+	}
+	
+	function tearDown(){
+		// global tear down
+	}
+	
+    function testPretend(){
+        // pretend($domain = 'local.ellipsis.com', $uri = '/index.php'){
+        $domain = null;
+        $uri = null;
+    }
+
+    function testEllipsisAutoload(){
+        // ellipsis_autoload($class_name){
+        $class_name = null;
+    }
+
+    function testIsAssociativeArray(){
+        // is_associative_array($array){
+        $array = null;
+    }
+
+    function testArrayExtend(){
+        // array_extend($array1, $array2){
+        $array1 = null;
+        $array2 = null;
+    }
+
+    function testPregArray(){
+        // preg_array($regexp, $haystack){
+        $regexp = null;
+        $haystack = null;
+    }
+
+    function testIsRegexp(){
+        // is_regexp($regexp){
+        $regexp = null;
+    }
+
+    function testSingularize(){
+        // singularize($noun){
+        $noun = null;
+    }
+
+    function testPluralize(){
+        // pluralize($noun){
+        $noun = null;
+    }
+
+    function testScandirRecursive(){
+        // scandir_recursive($directory, $format = null, $excludes = array()){
+        $directory = null;
+        $format = null;
+        $excludes = null;
+    }
+
+    function testGetextension(){
+        // getextension($path)
+        $path = null;
+    }
+
+    function testGetfiletype(){
+        // getfiletype($path){
+        $path = null;
+    }
+
+    function testGetmimetype(){
+        // getmimetype($path){
+        $path = null;
+    }
+
+    function testTouchRecursive(){
+        // touch_recursive($path){
+        $path = null;
+    }
+
+    function testHexrgb(){
+        // hexrgb($hex){
+        $hex = null;
+    }
+
+    function testRgbhex(){
+        // rgbhex($r, $g, $b){
+        $rgb = null;
+    }
+
+    function testAsciihex(){
+        // asciihex($ascii){
+        $ascii = null;
+    }
+
+    function testHexascii(){
+        // hexascii($hex){
+        $hex = null;
+    }
+
+    function testJsonpEncode(){
+        // jsonp_encode($jsonp, $value, $options = null){
+        $jsonp = null;
+        $value = null;
+        $options = null;
+    }
+
+    function testEncrypt(){
+        // encrypt($salt, $unencrypted){
+        $salt = null;
+        $unencrypted = null;
+    }
+
+    function testDecrypt(){
+        // decrypt($salt, $encrypted){
+        $salt = null;
+        $encrypted = null;
+    }
+
+    /*
     function rrmdir($dir) { 
         if (is_dir($dir)) { 
             $objects = scandir($dir); 
@@ -22,16 +141,6 @@ class TestOfPhp extends UnitTestCase {
         } 
     } 
 
-	function setUp()
-	{
-		// global configurations
-	}
-	
-	function tearDown()
-	{
-		// global tear down
-	}
-	
 	function testAutoload()
 	{
 		// set up ENV, since framework is not running
@@ -201,13 +310,9 @@ class TestOfPhp extends UnitTestCase {
 	
 	function testTouch_Recursive()
 	{
-		/*
-		 * 
-		 * From vfsStream Known issues file: 
-		 * touch() does not work with any other URLs than pure filenames.
-		 * In this case it is necessary to remove a local temporary directory.
-		 * 
-		 */ 
+		// From vfsStream Known issues file: 
+		// touch() does not work with any other URLs than pure filenames.
+		// In this case it is necessary to remove a local temporary directory.
 		
 		if(is_dir('tmp'))
 		{
@@ -235,5 +340,6 @@ class TestOfPhp extends UnitTestCase {
 	{
 		$this->assertEqual(hexascii('4869'), 'Hi', 'hexascii should convert Hex to ASCII values');
 	}	
+     */
 }
 ?>
