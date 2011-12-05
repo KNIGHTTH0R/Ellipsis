@@ -163,7 +163,7 @@ class Repository {
      */
     private static function _isValidExtendedValue($type, $value){
         if (self::isExtendedType($type, $value)){
-            if (self::$_extendedTypes[$type]['
+            //if (self::$_extendedTypes[$type]['
         }
     }
 
@@ -394,7 +394,7 @@ class Repository {
      * @param string $uuid
      * @return object|null
      */
-    public static query($uuid){
+    public static function query($uuid){
         return null;
     }
 
