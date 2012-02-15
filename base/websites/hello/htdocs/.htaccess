@@ -1,0 +1,17 @@
+# Enable rewrite engine
+RewriteEngine on
+RewriteBase /
+
+# Force default home page
+RedirectMatch ^/$ /index.php
+
+# Force directory listing to index.php
+DirectoryIndex index.php index.html
+
+# Route missing files to the framework
+RewriteCond %{REQUEST_FILENAME} !-l
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{DOCUMENT_ROOT}/.init.php -f
+RewriteRule .* .init.php [L,QSA]
+
