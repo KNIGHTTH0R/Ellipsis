@@ -1,17 +1,8 @@
 
 # cached files and objects
-wwwroot/.cached/files
-wwwroot/.cached/objects
-
-# generated docs
-wwwroot/docs
-
-# utility repositories that are managed outside of ellipsis
-utils/simpletest
-utils/docblox
-
-# a place to keep work in progress files
-wip
+*/cache/expirations/*
+*/cache/objects/*
+*/logs/*
 
 # ignore svn directories
 *.svn
