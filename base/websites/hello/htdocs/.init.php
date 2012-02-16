@@ -16,6 +16,6 @@
 $_ENV['RUN'] = array('ellipsis');
 
 // locate the bootstrap file
-include '/Users/tobius/Projects/Ellipsis-0.2/base/bootstrap.php';
+include '../../../bootstrap.php';
 
 ?>
