@@ -42,13 +42,13 @@ class Ellipsis {
     }
 
     /**
-     * compare a defined session filter with the current session
+     * compare a route filter to the current session
      *
      * @param array $filter
      * @return boolean
      */
-    private static function session_compare(array &$filter){
-        // determine if filter and session match
+    private static function route_compare(array &$filter){
+        // determine if route filter and session match
         $match = true;
         foreach($filter['conditions'] as $variable => $condition){
             // prepare the discovered condition to be used as a regexp
@@ -62,38 +62,39 @@ class Ellipsis {
                     break;
                 case 'URI':
                     // compare a specific URI pattern
+                    // @todo: confirm that this new URI (non-regexp) code works as expected
                     $expression = is_regexp('/' . $condition . '/U') ? '/' . $condition . '/U' : (is_regexp($condition) ? $condition : null);
-                    /*
-                    if (!preg_match($expression, $_SERVER['PATH_INFO'])){
-                        $match = false;
-                        break 2;
-                    }
-                     */
-                    if (preg_match($expression, $_SERVER['PATH_INFO'], $matches)){
-                        if (count($matches) > 1){
-                            // capture backreferences by index and name
-                            array_shift($matches);
-                            foreach($matches as $k => $v){
-                                if (is_numeric($k)){
-                                    $filter['params'][($k+1)] = $v;
-                                } else {
-                                    $filter['params'][$k] = $v;
+                    if (!($expression == null && $condition == $_SERVER['PATH_INFO'])){
+                        if (preg_match($expression, $_SERVER['PATH_INFO'], $matches)){
+                            if (count($matches) > 1){
+                                // capture backreferences by index and name
+                                array_shift($matches);
+                                foreach($matches as $k => $v){
+                                    if (is_numeric($k)){
+                                        $filter['params'][($k+1)] = $v;
+                                    } else {
+                                        $filter['params'][$k] = $v;
+                                    }
                                 }
                             }
+                        } else {
+                            $match = false;
+                            break 2;
                         }
-                    } else {
-                        $match = false;
-                        break 2;
-                    }
+                    } 
                     break;
                 case 'QUERY':
                 case 'GET':
+                    echo "GET";
                     // compare get variables (aka query string values)
+                    // @todo: confirm that this new GET (non-regexp) code works as expected
                     foreach($condition as $key => $val){
                         $expression = is_regexp('/' . $val . '/U') ? '/' . $val . '/U' : (is_regexp($val) ? $val : null);
-                        if (!isset($_GET[$key]) || !preg_match($expression, $_GET[$key])){
-                            $match = false;
-                            break 3;
+                        if (!($expression == null && isset($_GET[$key]) && $condition == $_GET[$key])){
+                            if (!isset($_GET[$key]) || !preg_match($expression, $_GET[$key])){
+                                $match = false;
+                                break 3;
+                            }
                         }
                     }
                     break;
@@ -462,7 +463,11 @@ class Ellipsis {
 
         // perform a graceful failure (if graceful is set)
         // @todo: This may be completely unnecessary now that we're allowing app stacking
-        if ($_ENV['GRACEFUL']) self::fail(404, 'Failed to match any routes ' . time());
+        if ($_ENV['GRACEFUL']){
+            if (ob_get_contents() == ''){
+                self::fail(404, 'Failed to match any routes ' . time());
+            }
+        }
 
         // cache the output (if cache is set)
         if ($_ENV['CACHE_TIME'] > 0){
@@ -477,71 +482,61 @@ class Ellipsis {
     }
 
     /**
-     * execute Ellipsis application
+     * execute Ellipsis
      *
-     * @param string $name
+     * @param void
      * @return void
      */
-    public static function execute_app($name){
-        // set app identity
-        $_ENV['CURRENT'] = $name;
-
-        // reset graceful failure
-        $_ENV['GRACEFUL'] = false;
-
-        // process filters
-        self::process_application_filters();
-
+    public static function execute(){
         // process routes
-        self::process_application_routes();
+        foreach($_ENV['ROUTES'] as $route){
+            // reset graceful failure
+            $_ENV['GRACEFUL'] = false;
+
+            // set current context identity
+            $_ENV['CURRENT'] = $route['application'];
+
+            // process routes
+            self::process_route($route);
+
+            // set graceful to true (if nothing else took)
+            $_ENV['GRACEFUL'] = true;
+        }
 
         // process source files
-        self::process_source_files();
-
-        // set graceful to true (if nothing else took)
-        $_ENV['GRACEFUL'] = true;
+        $reversed = array_reverse(array_keys($_ENV['APPS']));
+        foreach($reversed as $app_name){
+            $htdocs_root = "{$_ENV['APPS'][$app_name]['APP_SRC_ROOT']}/htdocs";
+            if (is_dir($htdocs_root)){
+                $htdocs_paths = scandir_recursive($htdocs_root, 'relative');
+                foreach($htdocs_paths as $path){
+                    if ($_SERVER['PATH_INFO'] == $path){
+                        // load path
+                        self::load_path($path);
+                    }
+                }
+            }
+        }
     }
 
     /**
-     * execute Ellipsis website
+     * process route
      *
-     * @param void
+     * @param array $route
      * @return void
      */
-    public static function execute_website(){
-        // remove app identity
-        $_ENV['CURRENT'] = null;
-
-        // reset graceful failure
-        $_ENV['GRACEFUL'] = false;
-
-        // process filters
-        self::process_website_filters();
-
-        // process routes
-        self::process_website_routes();
-
-        // set graceful to true (if nothing else took)
-        $_ENV['GRACEFUL'] = true;
-    }
-
-    /**
-     * process application filters
-     *
-     * @param void
-     * @return void
-     */
-    private static function process_application_filters(){
-        // process filters
-        foreach($_ENV['APPS'][$_ENV['CURRENT']]['APP_FILTERS'] as $filter){
-            // compare the filter to the current session
-            if (self::session_compare($filter)){
+    private static function process_route($route){
+        // compare the route filter to the current session
+        if (self::route_compare($route)){
+            // this route matched, decide if it should be processed
+            $process = false;
+            if ($route['closure']){
                 // capture the current cache setting (might need to undo)
                 $cache_time = $_ENV['CACHE_TIME'];
-                $_ENV['CACHE_TIME'] = $filter['cache'];
+                $_ENV['CACHE_TIME'] = $route['cache'];
 
                 // process these instructions as a closure
-                $result = $filter['closure']($filter['params']);
+                $result = $route['closure']($route['params']);
                 if ($result === false){
                     // this closure returned false, forcibly exit
                     exit;
@@ -549,192 +544,39 @@ class Ellipsis {
                     // undo cache setting
                     $_ENV['CACHE_TIME'] = $cache_time;
 
-                    // this closure has finished, on to the next filter
-                    continue;
+                    if (is_string($result)){
+                        // this closure returned a new path, set it and load it
+                        $route['rewrite_path'] = $result;
+                        $process = true;
+                    }
                 }
+            } else {
+                $process = true;
             }
-        }
-    }
 
-    /**
-     * process application routes
-     *
-     * @param void
-     * @return void
-     */
-    private static function process_application_routes(){
-        foreach($_ENV['APPS'][$_ENV['CURRENT']]['APP_ROUTES'] as $route){
-            // compare the route to the current session
-            if (self::session_compare($route)){
-                // this route matched, decide if it should be processed
-                $process = false;
-                if ($route['closure']){
-                    // capture the current cache setting (might need to undo)
-                    $cache_time = $_ENV['CACHE_TIME'];
-                    $_ENV['CACHE_TIME'] = $route['cache'];
-
-                    // process these instructions as a closure
-                    $result = $route['closure']($route['params']);
-                    if ($result === false){
-                        // this closure returned false, forcibly exit
-                        exit;
-                    } else {
-                        // undo cache setting
-                        $_ENV['CACHE_TIME'] = $cache_time;
-
-                        if (is_string($result)){
-                            // this closure returned a new path, set it and load it
-                            $route['rewrite_path'] = $result;
-                            $process = true;
+            if ($process){
+                // perform backreference replacements first (if applicable)
+                preg_match_all('/\$\{([^\}]+)\}/', $route['rewrite_path'], $matches);
+                if (count($matches) > 1){
+                    foreach($matches[1] as $match){
+                        if (is_numeric($match) && isset($route['params'][$match])){
+                            $route['rewrite_path'] = preg_replace('/\$\{' . $match . '\}/', $route['params'][$match], $route['rewrite_path']);
+                        } else if (isset($route['params']["{$match}"])){
+                            $route['rewrite_path'] = preg_replace('/\$\{' . $match . '\}/', $route['params'][$match], $route['rewrite_path']);
                         } else {
-                            // this closure has finished, on to the next route
-                            continue;
+                            // leaving a backreference behind will result in an invalid file path
+                            self::fail(500, 'Invalid Path: Closure backreference could not be replaced');
                         }
                     }
-                } else {
-                    $process = true;
                 }
 
-                if ($process){
-                    // perform backreference replacements first (if applicable)
-                    preg_match_all('/\$\{([^\}]+)\}/', $route['rewrite_path'], $matches);
-                    if (count($matches) > 1){
-                        foreach($matches[1] as $match){
-                            if (is_numeric($match) && isset($route['params'][$match])){
-                                $route['rewrite_path'] = preg_replace('/\$\{' . $match . '\}/', $route['params'][$match], $route['rewrite_path']);
-                            } else if (isset($route['params']["{$match}"])){
-                                $route['rewrite_path'] = preg_replace('/\$\{' . $match . '\}/', $route['params'][$match], $route['rewrite_path']);
-                            } else {
-                                // leaving a backreference behind will result in an invalid file path
-                                self::fail(500, 'Invalid Path: Closure backreference could not be replaced');
-                            }
-                        }
-                    }
-
-                    // process rewrite_path
-                    if (!preg_match('/\$\{/', $route['rewrite_path'])){
-                        $_ENV['CACHE_TIME'] = $route['cache'];
-                        self::load_path($route['rewrite_path']);
-                    }
-                }
-            }
-        }
-
-    }
-
-    /**
-     * process source files
-     *
-     * @param void
-     * @return void
-     */
-    private static function process_source_files(){
-        $htdocs_root = "{$_ENV['APPS'][$_ENV['CURRENT']]['APP_SRC_ROOT']}/htdocs";
-        if (is_dir($htdocs_root)){
-            $htdocs_paths = scandir_recursive($htdocs_root, 'relative');
-            foreach($htdocs_paths as $path){
-                if ($_SERVER['PATH_INFO'] == $path){
-                    self::load_path($path);
-                }
-            }
-        }
-    }
-
-    /**
-     * process website filters
-     *
-     * @param void
-     * @return void
-     */
-    private static function process_website_filters(){
-        // process filters
-        foreach($_ENV['WEBSITE_FILTERS'] as $filter){
-            // compare the filter to the current session
-            if (self::session_compare($filter)){
-                // capture the current cache setting (might need to undo)
-                $cache_time = $_ENV['CACHE_TIME'];
-                $_ENV['CACHE_TIME'] = $filter['cache'];
-
-                // process these instructions as a closure
-                $result = $filter['closure']($filter['params']);
-                if ($result === false){
-                    // this closure returned false, forcibly exit
-                    exit;
-                } else {
-                    // undo cache setting
-                    $_ENV['CACHE_TIME'] = $cache_time;
-
-                    // this closure has finished, on to the next filter
-                    continue;
-                }
-            }
-        }
-    }
-
-    /**
-     * process website routes
-     *
-     * @param void
-     * @return void
-     */
-    private static function process_website_routes(){
-        foreach($_ENV['WEBSITE_ROUTES'] as $route){
-            // compare the route to the current session
-            if (self::session_compare($route)){
-                // this route matched, decide if it should be processed
-                $process = false;
-                if ($route['closure']){
-                    // capture the current cache setting (might need to undo)
-                    $cache_time = $_ENV['CACHE_TIME'];
+                // process rewrite_path
+                if (!preg_match('/\$\{/', $route['rewrite_path'])){
                     $_ENV['CACHE_TIME'] = $route['cache'];
-
-                    // process these instructions as a closure
-                    $result = $route['closure']($route['params']);
-                    if ($result === false){
-                        // this closure returned false, forcibly exit
-                        exit;
-                    } else {
-                        // undo cache setting
-                        $_ENV['CACHE_TIME'] = $cache_time;
-
-                        if (is_string($result)){
-                            // this closure returned a new path, set it and load it
-                            $route['rewrite_path'] = $result;
-                            $process = true;
-                        } else {
-                            // this closure has finished, on to the next route
-                            continue;
-                        }
-                    }
-                } else {
-                    $process = true;
-                }
-
-                if ($process){
-                    // perform backreference replacements first (if applicable)
-                    preg_match_all('/\$\{([^\}]+)\}/', $route['rewrite_path'], $matches);
-                    if (count($matches) > 1){
-                        foreach($matches[1] as $match){
-                            if (is_numeric($match) && isset($route['params'][$match])){
-                                $route['rewrite_path'] = preg_replace('/\$\{' . $match . '\}/', $route['params'][$match], $route['rewrite_path']);
-                            } else if (isset($route['params']["{$match}"])){
-                                $route['rewrite_path'] = preg_replace('/\$\{' . $match . '\}/', $route['params'][$match], $route['rewrite_path']);
-                            } else {
-                                // leaving a backreference behind will result in an invalid file path
-                                self::fail(500, 'Invalid Path: Closure backreference could not be replaced');
-                            }
-                        }
-                    }
-
-                    // process rewrite_path
-                    if (!preg_match('/\$\{/', $route['rewrite_path'])){
-                        $_ENV['CACHE_TIME'] = $route['cache'];
-                        self::load_path($route['rewrite_path']);
-                    }
+                    self::load_path($route['rewrite_path']);
                 }
             }
         }
-
     }
 
     /**
@@ -748,36 +590,6 @@ class Ellipsis {
     }
 
     /**
-     * add a filter rule to the current application
-     *
-     * @param mixed $conditions (uri_param | conditions)
-     * @param object $closure
-     * @param integer $cache (seconds)
-     * @return void
-     */
-    public static function add_filter($conditions, $closure, $cache = null){
-        // parse filter
-        $filter = null;
-        if (is_object($closure)){
-            $conditions = is_string($conditions) ? array('URI' => $conditions) : $conditions;
-            $filter = array(
-                'conditions'    => $conditions,
-                'params'        => array(),
-                'rewrite_path'  => null,
-                'closure'       => $closure,
-                'cache'         => $cache
-            );
-        }
-
-        // record filter
-        if ($_ENV['CURRENT'] != null){
-            $_ENV['APPS'][$_ENV['CURRENT']]['APP_FILTERS'][] = $filter;
-        } else {
-            $_ENV['WEBSITE_FILTERS'][] = $filter;
-        }
-    }
-
-    /**
      * add a routing rule to the current application
      *
      * @param mixed $conditions (uri_param | conditions)
@@ -785,18 +597,22 @@ class Ellipsis {
      * @param integer $cache (seconds)
      * @return void
      */
-    public static function add_route($conditions, $instruction, $cache = null){
+    public static function add_route($conditions, $instruction, $cache = null, $override = false){
         // parse route
-        $filter = null;
+        $route = null;
         $conditions     = is_string($conditions) ? array('URI' => $conditions) : $conditions;
         $rewrite_path   = is_string($instruction) ? $instruction : null;
         $closure        = is_object($instruction) ? $instruction : null;
-        $filter = array(
+        $override       = ($override !== false) ? true : false;
+        $route = array(
+            'application'   => $_ENV['CURRENT'],
+            'hash'          => md5(serialize($conditions)),
             'conditions'    => $conditions,
             'params'        => array(),
             'rewrite_path'  => $rewrite_path,
             'closure'       => $closure,
-            'cache'         => $cache
+            'cache'         => $cache,
+            'override'      => $override
         );
 
         // record route
