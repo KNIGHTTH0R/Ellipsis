@@ -86,20 +86,17 @@ if (count($_ENV['RUN']) >= 1){
         $website_root       = preg_replace('/\/htdocs$/', '', $_SERVER['DOCUMENT_ROOT']);
         $website_name       = preg_replace('/^.*\/([^\/]+)$/', '$1', $website_root);
         $website_config     = "{$website_root}/config.php";
-        $website_filters    = "{$website_root}/filters.php";
         $website_routes     = "{$website_root}/routes.php";
         $website_cache      = "{$website_root}/cache";
         $website_logs       = "{$website_root}/logs";
 
-        if (is_dir($website_root) && is_file($website_config) && is_file($website_filters) && is_file($website_routes) && is_dir($website_cache) && is_dir($website_logs)){
+        if (is_dir($website_root) && is_file($website_config) && is_file($website_routes) && is_dir($website_cache) && is_dir($website_logs)){
             $_ENV['WEBSITE_NAME']           = $website_name;
             $_ENV['WEBSITE_ROOT']           = $website_root;
             $_ENV['WEBSITE_CONFIG_FILE']    = $website_config;
-            $_ENV['WEBSITE_FILTERS_FILE']   = $website_filters;
             $_ENV['WEBSITE_ROUTES_FILE']    = $website_routes;
             $_ENV['WEBSITE_CACHE_ROOT']     = $website_cache;
             $_ENV['WEBSITE_LOG_ROOT']       = $website_logs;
-            $_ENV['WEBSITE_FILTERS']        = array();
             $_ENV['WEBSITE_ROUTES']         = array();
 
             // validate and load each application configuration
@@ -111,26 +108,23 @@ if (count($_ENV['RUN']) >= 1){
                     $app_root       = "{$apps_dir}/{$app_dir}";
                     $app_file       = "{$app_root}/{$app_name}.php";
                     $app_config     = "{$app_root}/config.php";
-                    $app_filters    = "{$app_root}/filters.php";
                     $app_routes     = "{$app_root}/routes.php";
                     $app_lib        = "{$app_root}/lib";
                     $app_modules    = "{$app_root}/modules";
                     $app_src        = "{$app_root}/src";
                     $app_tests      = "{$app_root}/tests";
 
-                    if (is_dir($app_root) && is_file($app_file) && is_file($app_config) && is_file($app_filters) && is_file($app_routes) && is_dir($app_lib) && is_dir($app_modules) && is_dir($app_src) && is_dir($app_tests)){
+                    if (is_dir($app_root) && is_file($app_file) && is_file($app_config) && is_file($app_routes) && is_dir($app_lib) && is_dir($app_modules) && is_dir($app_src) && is_dir($app_tests)){
                         $apps[$app_name] = array(
                             'APP_NAME'          => $app_name,       // the app name (after hyphen truncation)
                             'APP_ROOT'          => $app_root,       // the app root directory under which {app_name}.php is executing
                             'APP_FILE'          => $app_file,       // the app file path (i.e. {app_name}.php)
                             'APP_CONFIG_FILE'   => $app_config,     // the app config file path
-                            'APP_FILTERS_FILE'  => $app_filters,    // the app filters file path
                             'APP_ROUTES_FILE'   => $app_routes,     // the app routes file path
                             'APP_LIB_ROOT'      => $app_lib,        // the app lib root directory (includable libraries)
                             'APP_MODULES_ROOT'  => $app_modules,    // the app modules root directory (loadable modules)
                             'APP_SRC_ROOT'      => $app_src,        // the app source root directory (loadable source files)
                             'APP_TEST_ROOT'     => $app_tests,      // the app unit test root directory (unit test files)
-                            'APP_FILTERS'       => array(),         // the app filters (from $app_name/filters.php)
                             'APP_ROUTES'        => array()          // the app routes (from $app_name/routes.php)
                         );
                     } else {
@@ -159,14 +153,14 @@ if (count($_ENV['RUN']) >= 1){
                         // identify loadable app modules
                         $_ENV['APPS'][$app_name]['APP_MODULES_FILES'] = glob("{$app['APP_MODULES_ROOT']}/*.php");
 
-                        // load app config file
+                        // set app configs
                         include $app['APP_CONFIG_FILE'];
                     }
 
-                    // load site config file
+                    // set website configs
                     include $_ENV['WEBSITE_CONFIG_FILE'];
 
-                    // load app classes, filters, and routes
+                    // load app classes and routes
                     foreach($_ENV['APPS'] as $app_name => $app){
                         // set current app
                         $_ENV['CURRENT'] = $app_name;
@@ -177,28 +171,47 @@ if (count($_ENV['RUN']) >= 1){
                         // load app class
                         include $app['APP_FILE'];
 
-                        // load app filters
-                        include $app['APP_FILTERS_FILE'];
-
-                        // load app routes
+                        // add app routes
                         include $app['APP_ROUTES_FILE'];
                     }
 
                     // reset app for website configurations
                     $_ENV['CURRENT'] = null;
 
-                    // load site filters and routes
-                    include $_ENV['WEBSITE_FILTERS_FILE'];
+                    // add website routes
                     include $_ENV['WEBSITE_ROUTES_FILE'];
 
-                    // run each application
+                    // stack all routes in one reverse order list
+                    $all = array();
                     foreach(array_keys($_ENV['APPS']) as $app_name){
-                        // execute application
-                        Ellipsis::execute_app($app_name);
+                        $all = array_merge($all, $_ENV['APPS'][$app_name]['APP_ROUTES']);
                     }
+                    $all = array_merge($all, $_ENV['WEBSITE_ROUTES']);
 
-                    // run the website
-                    Ellipsis::execute_website();
+                    // apply route override logic
+                    $overrides = array();
+                    $processed = array();
+                    foreach($all as $route){
+                        if ($route['override'] && !isset($overrides[$route['hash']])){
+                            $overrides[$route['hash']] = $route;
+                        }
+                    }
+                    $count = 0;
+                    foreach($all as $route){
+                        if (isset($overrides[$route['hash']]) && !isset($processed[$route['hash']])){
+                            $processed[$route['hash']] = $overrides[$route['hash']];
+                        } else if (!isset($overrides[$route['hash']])){
+                            $processed[$count] = $route;
+                            $count++;
+                        }
+                    }
+                    $processed = array_values($processed);
+
+                    // set route list
+                    $_ENV['ROUTES'] = $processed;
+
+                    // execute Ellipsis
+                    Ellipsis::execute();
                 }
             } else {
                 $_ENV['BOOT_ERRORS'][] = "The apps directory could not be found";
