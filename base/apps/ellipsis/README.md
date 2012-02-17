@@ -53,7 +53,6 @@ can imagine.
             {appname}/
                 {appname}.php
                 config.php
-                filters.php
                 routes.php
                 lib/
                     ...
@@ -70,7 +69,6 @@ can imagine.
         websites/
             {sitename}/
                 config.php
-                filters.php
                 routes.php
                 cache/
                     expirations/
@@ -133,8 +131,7 @@ how simple or complex these configurations should be.
 
 + __{appname}.php__: static php class that acts as the application gateway
 + __config.php__: php file that sets application specific environment variables
-+ __filters.php__: php file that defines code filters to execute based on specific environmental conditions
-+ __routes.php__: php file that defines application routes to service based on specific environmental conditions
++ __routes.php__: php file that defines application routes to execute based on specific environmental conditions
 
 
 Website Configuration Files
@@ -145,39 +142,12 @@ override any duplicate application configurations. Again, it is up to the
 developer as to how simple or complex these configurations should be.
 
 + __config.php__: php file that sets application specific environment variables
-+ __filters.php__: php file that defines code filters to execute based on specific environmental conditions
-+ __routes.php__: php file that defines application routes to service based on specific environmental conditions
++ __routes.php__: php file that defines application routes to execute based on specific environmental conditions
 + __htdocs/.htaccess__: htaccess file used to bootstrap Ellipsis and define which applications to run in this website
 
 
 
 <!--
-function route($conditions, $uri);
-
-function filter($conditions, $closure);
-
-config
-    sets vars
-bootstrap
-    processes environment
-routes
-    routes to app destinations
-
-
-workflow
-    htaccess executes global bootstrap
-    global bootstrap creates app list
-    foreach app
-        load app config
-        load site config
-        load app filters
-        load site filters
-        load site routes
-        load app routes
-
-
-
-
 
             ellipsis-latest/
                 CHANGELOG.md
