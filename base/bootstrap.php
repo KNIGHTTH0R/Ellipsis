@@ -58,7 +58,6 @@ function ellipsis_autoload_modules($class_name){
         foreach($authorized as $app_name){
             foreach($_ENV['APPS'][$app_name]['APP_MODULES_FILES'] as $module){
                 if (preg_replace('/^.*([^\/]+)\.php$/U', '$1', $module) == strtolower($class_name)){
-                    //echo $module;
                     require_once($module);
                     return;
                 }
