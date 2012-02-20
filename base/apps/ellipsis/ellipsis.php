@@ -85,7 +85,6 @@ class Ellipsis {
                     break;
                 case 'QUERY':
                 case 'GET':
-                    echo "GET";
                     // compare get variables (aka query string values)
                     // @todo: confirm that this new GET (non-regexp) code works as expected
                     foreach($condition as $key => $val){
