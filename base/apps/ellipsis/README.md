@@ -80,6 +80,8 @@ can imagine.
                     ...
                 logs/
                     ...
+                tests/
+                    ...
 
 
 Top-Level Directories
@@ -104,7 +106,7 @@ application.
 + __{appname}/src__: source documents used by the application to build web responses
 + __{appname}/src/assets__: asset files used by the application not necessarily for building web responses
 + __{appname}/src/htdocs__: web files used by the application to build web responses (also may be used for direct routing)
-+ __{appname}/tests__: unit tests used by the application to validate successful operations
++ __{appname}/tests__: unit tests used by the application to validate successful PHP operations
 
 
 Website Directories
@@ -121,6 +123,7 @@ administrator to use for configuration backups.
 + __{sitename}/cache/objects__: json files used to store cached php objects
 + __{sitename}/htdocs__: web documents to be served directly by apache (this also serves as the storage folder for cached files)
 + __{sitename}/logs__: log files created by Ellipsis applications
++ __{sitename}/tests__: unit tests used by the application to validate successful web operations
 
 
 Application Configuration Files
