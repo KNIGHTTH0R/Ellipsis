@@ -17,17 +17,54 @@ define('E_DEBUG', 3);
  */
 class Ellipsis {
 
+    // --------------------------------------------------------------- //
+    // private internal Ellipsis functions                             //
+    // --------------------------------------------------------------- //
+
     /**
-     * dump PHP and/or Ellipsis error messages
+     * cache the current buffer
      *
-     * @param void
+     * @param int $seconds
      * @return void
      */
-    private static function dump_error_messages(){
-        echo "<h1>Internal Error" . (count($_ENV['ERRORS']) > 1 ? "s" : "") . "</h1>";
-        foreach($_ENV['ERRORS'] as $error){
-            echo "<h3>{$error['type']}</h3>";
-            echo "<div>{$error['message']} in {$error['file']} on line {$error['line']}</div>";
+    private static function cache_buffer($seconds = null){
+        // define the buffer website file
+        $website_file = $_SERVER['DOCUMENT_ROOT'] . $_SERVER['PATH_INFO'];
+
+        // define the buffer expiration file
+        $expiration_file = "{$_ENV['WEBSITE_CACHE_ROOT']}/expirations{$_SERVER['PATH_INFO']}";
+
+        // define the buffer expiration timestamp
+        $expiration_time = time() + $_ENV['CACHE_TIME'];
+
+        // test writability
+        $write = false;
+        if (is_writable($website_file) && is_writable($expiration_file)){
+            $write = true;
+        } else {
+            $hash = md5($website_file);
+            if (touch_recursive("{$website_file}.{$hash}.tmp") && touch_recursive("{$expiration_file}.{$hash}.tmp")){
+                @unlink("{$website_file}.{$hash}.tmp");
+                @unlink("{$expiration_file}.{$hash}.tmp");
+                $write = true;
+            }
+        }
+
+        // write this buffer to cache
+        if ($write){
+            // capture the current buffer
+            $buffer = ob_get_contents();
+
+            // write the buffer to the website file
+            $fp = fopen($website_file, 'wb');
+            fwrite($fp, $buffer);
+            fclose($fp);
+
+            // write the expiration time to the expiration file
+            file_put_contents($expiration_file, $expiration_time);
+
+            // output debug information
+            self::debug("Cache Time: " . date('l jS \of F Y h:i:s A T', $cache_time));
         }
     }
 
@@ -39,6 +76,125 @@ class Ellipsis {
      * @return void
      */
     private static function dump_debug_messages($message, $data = null){
+    }
+
+    /**
+     * dump PHP and/or Ellipsis error messages
+     *
+     * @todo provide output context (i.e. right now too much sensitive information comes out in error reporting)
+     * @param void
+     * @return void
+     */
+    private static function dump_error_messages(){
+        $format = self::get_output_format();
+        switch($format){
+            case 'html':
+                echo "<h1>Internal Error" . (count($_ENV['ERRORS']) > 1 ? "s" : "") . "</h1>";
+                foreach($_ENV['ERRORS'] as $error){
+                    echo "<h3>{$error['type']}</h3>";
+                    echo "<div>{$error['message']} in {$error['file']} on line {$error['line']}</div>";
+                }
+                break;
+            case 'json':
+                echo json_encode(array('errors' => $_ENV['ERRORS']));
+                break;
+            case 'text':
+                echo "Internal Error" . (count($_ENV['ERRORS']) > 1 ? "s" : "") . "\n";
+                echo "----------------------------------------------------------------------\n\n";
+                foreach($_ENV['ERRORS'] as $error){
+                    echo "{$error['type']}\n";
+                    echo "{$error['message']} in {$error['file']} on line {$error['line']}\n\n";
+                }
+                break;
+        }
+    }
+
+    /**
+     * get output content format
+     *
+     * @param void
+     * @return string
+     */
+    private static function get_output_format(){
+        $headers = headers_list();
+        $content_type = null;
+        foreach($headers as $header){
+            if (preg_match('/content-type/i', $header)){
+                $content_type = strtolower(preg_replace('/^.*content-type:\s*([a-z0-9_-]+\/[a-z0-9_-]+).*$/i', '$1', $header));
+                continue;
+            }
+        }
+        if ($content_type != null){
+            switch($content_type){
+                case 'text/html':
+                case 'text/xml':
+                    return('html');
+                case 'application/json':
+                case 'application/x-json':
+                    return('json');
+            }
+        }
+        return 'text';
+    }
+
+    /**
+     * process route
+     *
+     * @param array $route
+     * @return void
+     */
+    private static function process_route($route){
+        // compare the route filter to the current session
+        if (self::route_compare($route)){
+            // this route matched, decide if it should be processed
+            $process = false;
+            if ($route['closure']){
+                // capture the current cache setting (might need to undo)
+                $cache_time = $_ENV['CACHE_TIME'];
+                $_ENV['CACHE_TIME'] = $route['cache'];
+
+                // process these instructions as a closure
+                $result = $route['closure']($route['params']);
+                if ($result === false){
+                    // this closure returned false, forcibly exit
+                    exit;
+                } else {
+                    // undo cache setting
+                    $_ENV['CACHE_TIME'] = $cache_time;
+
+                    if (is_string($result)){
+                        // this closure returned a new path, set it and load it
+                        $route['rewrite_path'] = $result;
+                        $process = true;
+                    }
+                }
+            } else {
+                $process = true;
+            }
+
+            if ($process){
+                // perform backreference replacements first (if applicable)
+                preg_match_all('/\$\{([^\}]+)\}/', $route['rewrite_path'], $matches);
+                if (count($matches) > 1){
+                    foreach($matches[1] as $match){
+                        if (is_numeric($match) && isset($route['params'][$match])){
+                            $route['rewrite_path'] = preg_replace('/\$\{' . $match . '\}/', $route['params'][$match], $route['rewrite_path']);
+                        } else if (isset($route['params']["{$match}"])){
+                            $route['rewrite_path'] = preg_replace('/\$\{' . $match . '\}/', $route['params'][$match], $route['rewrite_path']);
+                        } else {
+                            // leaving a backreference behind will result in an invalid file path
+                            self::fail(500, 'Invalid Path: Closure backreference could not be replaced');
+                        }
+                    }
+                }
+
+                // process rewrite_path
+                if (!preg_match('/\$\{/', $route['rewrite_path'])){
+                    $_ENV['CACHE_TIME'] = $route['cache'];
+                    self::load_path($route['rewrite_path']);
+                }
+            }
+        }
     }
 
     /**
@@ -65,7 +221,7 @@ class Ellipsis {
                     // @todo: confirm that this new URI (non-regexp) code works as expected
                     $expression = is_regexp('/' . $condition . '/U') ? '/' . $condition . '/U' : (is_regexp($condition) ? $condition : null);
                     if (!($expression == null && $condition == $_SERVER['PATH_INFO'])){
-                        if (preg_match($expression, $_SERVER['PATH_INFO'], $matches)){
+                        if ($expression != null && preg_match($expression, $_SERVER['PATH_INFO'], $matches)){
                             if (count($matches) > 1){
                                 // capture backreferences by index and name
                                 array_shift($matches);
@@ -158,51 +314,243 @@ class Ellipsis {
         return $match;
     }
 
+    // --------------------------------------------------------------- //
+    // public Ellipsis functions                                       //
+    // --------------------------------------------------------------- //
+
     /**
-     * cache the current buffer
+     * add a routing rule to the current application
      *
-     * @param int $seconds
+     * @param mixed $conditions (uri_param | conditions)
+     * @param mixed $instruction (rewrite_path | closure)
+     * @param integer $cache (seconds)
      * @return void
      */
-    private static function cache_buffer($seconds = null){
-        // define the buffer website file
-        $website_file = $_SERVER['DOCUMENT_ROOT'] . $_SERVER['PATH_INFO'];
+    public static function add_route($conditions, $instruction, $cache = null, $override = false){
+        // parse route
+        $route = null;
+        $conditions     = is_string($conditions) ? array('URI' => $conditions) : $conditions;
+        $rewrite_path   = is_string($instruction) ? $instruction : null;
+        $closure        = is_object($instruction) ? $instruction : null;
+        $override       = ($override !== false) ? true : false;
+        $route = array(
+            'application'   => $_ENV['CURRENT'],
+            'hash'          => md5(serialize($conditions)),
+            'conditions'    => $conditions,
+            'params'        => array(),
+            'rewrite_path'  => $rewrite_path,
+            'closure'       => $closure,
+            'cache'         => $cache,
+            'override'      => $override
+        );
 
-        // define the buffer expiration file
-        $expiration_file = "{$_ENV['WEBSITE_CACHE_ROOT']}/expirations{$_SERVER['PATH_INFO']}";
-
-        // define the buffer expiration timestamp
-        $expiration_time = time() + $_ENV['CACHE_TIME'];
-
-        // test writability
-        $write = false;
-        if (is_writable($website_file) && is_writable($expiration_file)){
-            $write = true;
+        // record route
+        if ($_ENV['CURRENT'] != null){
+            $_ENV['APPS'][$_ENV['CURRENT']]['APP_ROUTES'][] = $route;
         } else {
-            $hash = md5($website_file);
-            if (touch_recursive("{$website_file}.{$hash}.tmp") && touch_recursive("{$expiration_file}.{$hash}.tmp")){
-                @unlink("{$website_file}.{$hash}.tmp");
-                @unlink("{$expiration_file}.{$hash}.tmp");
-                $write = true;
+            $_ENV['WEBSITE_ROUTES'][] = $route;
+        }
+    }
+
+    /**
+     * manage inner buffer with Ellipsis
+     * 
+     * @param string $buffer
+     * @param integer $mode
+     * @return void
+     */
+    public static function buffer_handler($buffer, $mode){
+        // find uncatchable errors
+        if (preg_match('/<\/b>:\s*(.+) in <b>(.+)<\/b> on line <b>(.+)<\/b>/U', $buffer, $matches)){
+            Ellipsis::error_handler(E_ERROR, $matches[1], $matches[2], $matches[3]);
+        }
+
+        // empty buffer (if errors)
+        if (count($_ENV['ERRORS']) > 0){
+            $buffer = '';
+        }
+
+        // return applicable buffer
+        return $buffer;
+    }
+
+    /**
+     * cleanup expired cache buffers
+     *
+     * @param void
+     * @return void
+     */
+    public static function clean_buffers(){
+        // locate cached buffers that have expired and delete them
+    }
+
+    /**
+     * record debug statement
+     *
+     * @param string $message
+     * @param mixed $data
+     * @return boolean
+     */
+    public static function debug($message, $data = null){
+        if ($_ENV['DEBUG']){
+            if ($data != null){
+                ChromePhp::log("{$_SERVER['PATH_INFO']}: {$message}", $data);
+            } else {
+                ChromePhp::log("{$_SERVER['PATH_INFO']}: {$message}");
             }
         }
+    }
 
-        // write this buffer to cache
-        if ($write){
-            // capture the current buffer
-            $buffer = ob_get_contents();
+    /**
+     * manage both PHP errors and Ellipsis application errors
+     *
+     * @param integer $error_number
+     * @param string $error_message
+     * @param string $error_file
+     * @param integer $error_line
+     * @param array $error_context
+     * @return void
+     */
+    public static function error_handler($error_number, $error_message, $error_file = null, $error_line = null, $error_context = null){
+        $reporting = ini_get('error_reporting');
+        if(!($reporting & $error_number)) return false;
 
-            // write the buffer to the website file
-            $fp = fopen($website_file, 'wb');
-            fwrite($fp, $buffer);
-            fclose($fp);
+        $error_types = array(
+            E_ERROR             => 'Fatal Error',
+            E_WARNING           => 'Warning',
+            E_DEBUG             => 'Debug',
+            E_PARSE             => 'Parse Error',
+            E_NOTICE            => 'Notice',
+            E_CORE_ERROR        => 'Fatal Core Error',
+            E_CORE_WARNING      => 'Core Warning',
+            E_COMPILE_ERROR     => 'Compilation Error',
+            E_COMPILE_WARNING   => 'Compilation Warning',
+            E_USER_ERROR        => 'Triggered Error',
+            E_USER_WARNING      => 'Triggered Warning',
+            E_USER_NOTICE       => 'Triggered Notice',
+            E_STRICT            => 'Deprecation Notice',
+            E_RECOVERABLE_ERROR => 'Catchable Fatal Error'
+        );
+        $error = array(
+            'number'    => $error_number,
+            'message'   => $error_message,
+            'file'      => $error_file,
+            'line'      => $error_line,
+            'context'   => $error_context,
+            'type'      => $error_types[$error_number]
+        );
+        $_ENV['ERRORS'][] = $error;
+        return false;
+    }
 
-            // write the expiration time to the expiration file
-            file_put_contents($expiration_file, $expiration_time);
+    /**
+     * execute Ellipsis
+     *
+     * @param void
+     * @return void
+     */
+    public static function execute(){
+        // process routes
+        foreach($_ENV['ROUTES'] as $route){
+            // reset graceful failure
+            $_ENV['GRACEFUL'] = false;
 
-            // output debug information
-            self::debug("Cache Time: " . date('l jS \of F Y h:i:s A T', $cache_time));
+            // set current context identity
+            $_ENV['CURRENT'] = $route['application'];
+
+            // process routes
+            self::process_route($route);
+
+            // set graceful to true (if nothing else took)
+            $_ENV['GRACEFUL'] = true;
         }
+
+        // process source files
+        $reversed = array_reverse(array_keys($_ENV['APPS']));
+        foreach($reversed as $app_name){
+            $htdocs_root = "{$_ENV['APPS'][$app_name]['APP_SRC_ROOT']}/htdocs";
+            if (is_dir($htdocs_root)){
+                $htdocs_paths = scandir_recursive($htdocs_root, 'relative');
+                foreach($htdocs_paths as $path){
+                    if ($_SERVER['PATH_INFO'] == $path){
+                        // load path
+                        self::load_path($path);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * record an HTTP failure
+     *
+     * @param integer $code
+     * @param string $message
+     * @return void
+     */
+    public static function fail($code, $message = null){
+        $format = self::get_output_format();
+        if (isset($_ENV['HTTP_CODE'][$code])){
+            self::debug("{$code} - {$message}", $_ENV['HTTP_CODE'][$code]);
+            if (isset($_ENV['HTTP_CODE'][$code]['path'])){
+                if (is_file($_ENV['APPS'][$_ENV['CURRENT']]['SCRIPT_ROOT'] . '/' . $_ENV['HTTP_CODE'][$code]['path'])){
+                    $PARAMS['ERROR_CODE'] = $code;
+                    $PARAMS['ERROR_TITLE'] = $_ENV['HTTP_CODE'][$code]['title'];
+                    $PARAMS['ERROR_DESCRIPTION'] = $_ENV['HTTP_CODE'][$code]['description'];
+                    $PARAMS['ERROR_TRANSLATION'] = $_ENV['HTTP_CODE'][$code]['translation'];
+                    include $_ENV['APPS'][$_ENV['CURRENT']]['SCRIPT_ROOT'] . '/' . $_ENV['HTTP_CODE'][$code]['path'];
+                    exit;
+                }
+            } else {
+                switch($format){
+                    case 'html':
+                        echo "<h1>{$code} - {$_ENV['HTTP_CODE'][$code]['title']}</h1>";
+                        echo "<div onmouseover=\"this.innerHTML='" . preg_quote($_ENV['HTTP_CODE'][$code]['translation'], "'") . "';\" onmouseout=\"this.innerHTML='" . preg_quote($_ENV['HTTP_CODE'][$code]['description'], "'") . "';\">{$_ENV['HTTP_CODE'][$code]['description']}</div>";
+                        break;
+                    case 'json':
+                        echo json_encode(
+                            array(
+                                'error' => array(
+                                    'title' => "{$code} - {$_ENV['HTTP_CODE'][$code]['title']}",
+                                    'description' => $_ENV['HTTP_CODE'][$code]['description'],
+                                    'translation' => $_ENV['HTTP_CODE'][$code]['translation']
+                                )
+                            )
+                        );
+                        break;
+                    case 'text':
+                        echo "{$code} - {$_ENV['HTTP_CODE'][$code]['title']}\n";
+                        echo "----------------------------------------------------------------------\n\n";
+                        echo "{$_ENV['HTTP_CODE'][$code]['description']}\n";
+                        echo "({$_ENV['HTTP_CODE'][$code]['translation']})\n";
+                        break;
+                }
+            }
+        } else {
+            self::debug("{$code} - {$message}");
+            switch($format){
+                case 'html':
+                    echo "<h1>{$code} - Unknown Error</h1>";
+                    echo "<div>{$message}</div>";
+                    break;
+                case 'json':
+                    echo json_encode(
+                        array(
+                            'error' => array(
+                                'title' => "{$code} - Unknown Error",
+                                'description' => $message
+                            )
+                        )
+                    );
+                    break;
+                case 'text':
+                    echo "{$code} - Unknown Error\n";
+                    echo "----------------------------------------------------------------------\n\n";
+                    echo "{$message}\n";
+                    break;
+            }
+        }
+        exit;
     }
 
     /**
@@ -367,67 +715,42 @@ class Ellipsis {
     }
 
     /**
-     * manage inner buffer with Ellipsis
-     * 
-     * @param string $buffer
-     * @param integer $mode
-     * @return void
-     */
-    public static function buffer_handler($buffer, $mode){
-        // find uncatchable errors
-        if (preg_match('/<\/b>:\s*(.+) in <b>(.+)<\/b> on line <b>(.+)<\/b>/U', $buffer, $matches)){
-            Ellipsis::error_handler(E_ERROR, $matches[1], $matches[2], $matches[3]);
-        }
-
-        // empty buffer (if errors)
-        if (count($_ENV['ERRORS']) > 0){
-            $buffer = '';
-        }
-
-        // return applicable buffer
-        return $buffer;
-    }
-
-    /**
-     * manage both PHP errors and Ellipsis application errors
+     * load the destination path resource and exit
      *
-     * @param integer $error_number
-     * @param string $error_message
-     * @param string $error_file
-     * @param integer $error_line
-     * @param array $error_context
+     * @param string $path
      * @return void
      */
-    public static function error_handler($error_number, $error_message, $error_file = null, $error_line = null, $error_context = null){
-        $reporting = ini_get('error_reporting');
-        if(!($reporting & $error_number)) return false;
+    public static function load_path($path){
+        // find appropriate mime type
+        if (preg_match('/\.php$/', $_SERVER['PATH_INFO'])){
+            $mime_type = 'text/html';
+        } else if (preg_match('/\.[a-z0-9]+$/', $_SERVER['PATH_INFO'])){
+            $mime_type = getmimetype($_SERVER['PATH_INFO']);
+        } else if (preg_match('/\.php$/', $path)){
+            $mime_type = 'text/html';
+        } else {
+            $mime_type = getmimetype($path);
+        }
 
-        $error_types = array(
-            E_ERROR             => 'Fatal Error',
-            E_WARNING           => 'Warning',
-            E_DEBUG             => 'Debug',
-            E_PARSE             => 'Parse Error',
-            E_NOTICE            => 'Notice',
-            E_CORE_ERROR        => 'Fatal Core Error',
-            E_CORE_WARNING      => 'Core Warning',
-            E_COMPILE_ERROR     => 'Compilation Error',
-            E_COMPILE_WARNING   => 'Compilation Warning',
-            E_USER_ERROR        => 'Triggered Error',
-            E_USER_WARNING      => 'Triggered Warning',
-            E_USER_NOTICE       => 'Triggered Notice',
-            E_STRICT            => 'Deprecation Notice',
-            E_RECOVERABLE_ERROR => 'Catchable Fatal Error'
-        );
-        $error = array(
-            'number'    => $error_number,
-            'message'   => $error_message,
-            'file'      => $error_file,
-            'line'      => $error_line,
-            'context'   => $error_context,
-            'type'      => $error_types[$error_number]
-        );
-        $_ENV['ERRORS'][] = $error;
-        return false;
+        // output content type header
+        header("Content-Type: $mime_type");
+
+        // load path resource
+        $htdocs_root = "{$_ENV['APPS'][$_ENV['CURRENT']]['APP_SRC_ROOT']}/htdocs";
+        if (is_file("{$htdocs_root}{$path}")){
+            if (preg_match('/\.php$/', $path)){
+                include "{$htdocs_root}{$path}";
+            } else {
+                $fp = fopen("{$htdocs_root}{$path}", 'rb');
+                header('Content-Length: ' . filesize("{$htdocs_root}{$path}"));
+                fpassthru($fp);
+            }
+        } else {
+            self::fail(404);
+        }
+
+        // exit
+        exit;
     }
 
     /**
@@ -477,235 +800,6 @@ class Ellipsis {
         ob_end_flush();
 
         // real exit
-        exit;
-    }
-
-    /**
-     * execute Ellipsis
-     *
-     * @param void
-     * @return void
-     */
-    public static function execute(){
-        // process routes
-        foreach($_ENV['ROUTES'] as $route){
-            // reset graceful failure
-            $_ENV['GRACEFUL'] = false;
-
-            // set current context identity
-            $_ENV['CURRENT'] = $route['application'];
-
-            // process routes
-            self::process_route($route);
-
-            // set graceful to true (if nothing else took)
-            $_ENV['GRACEFUL'] = true;
-        }
-
-        // process source files
-        $reversed = array_reverse(array_keys($_ENV['APPS']));
-        foreach($reversed as $app_name){
-            $htdocs_root = "{$_ENV['APPS'][$app_name]['APP_SRC_ROOT']}/htdocs";
-            if (is_dir($htdocs_root)){
-                $htdocs_paths = scandir_recursive($htdocs_root, 'relative');
-                foreach($htdocs_paths as $path){
-                    if ($_SERVER['PATH_INFO'] == $path){
-                        // load path
-                        self::load_path($path);
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * process route
-     *
-     * @param array $route
-     * @return void
-     */
-    private static function process_route($route){
-        // compare the route filter to the current session
-        if (self::route_compare($route)){
-            // this route matched, decide if it should be processed
-            $process = false;
-            if ($route['closure']){
-                // capture the current cache setting (might need to undo)
-                $cache_time = $_ENV['CACHE_TIME'];
-                $_ENV['CACHE_TIME'] = $route['cache'];
-
-                // process these instructions as a closure
-                $result = $route['closure']($route['params']);
-                if ($result === false){
-                    // this closure returned false, forcibly exit
-                    exit;
-                } else {
-                    // undo cache setting
-                    $_ENV['CACHE_TIME'] = $cache_time;
-
-                    if (is_string($result)){
-                        // this closure returned a new path, set it and load it
-                        $route['rewrite_path'] = $result;
-                        $process = true;
-                    }
-                }
-            } else {
-                $process = true;
-            }
-
-            if ($process){
-                // perform backreference replacements first (if applicable)
-                preg_match_all('/\$\{([^\}]+)\}/', $route['rewrite_path'], $matches);
-                if (count($matches) > 1){
-                    foreach($matches[1] as $match){
-                        if (is_numeric($match) && isset($route['params'][$match])){
-                            $route['rewrite_path'] = preg_replace('/\$\{' . $match . '\}/', $route['params'][$match], $route['rewrite_path']);
-                        } else if (isset($route['params']["{$match}"])){
-                            $route['rewrite_path'] = preg_replace('/\$\{' . $match . '\}/', $route['params'][$match], $route['rewrite_path']);
-                        } else {
-                            // leaving a backreference behind will result in an invalid file path
-                            self::fail(500, 'Invalid Path: Closure backreference could not be replaced');
-                        }
-                    }
-                }
-
-                // process rewrite_path
-                if (!preg_match('/\$\{/', $route['rewrite_path'])){
-                    $_ENV['CACHE_TIME'] = $route['cache'];
-                    self::load_path($route['rewrite_path']);
-                }
-            }
-        }
-    }
-
-    /**
-     * cleanup expired cache buffers
-     *
-     * @param void
-     * @return void
-     */
-    public static function clean_buffers(){
-        // locate cached buffers that have expired and delete them
-    }
-
-    /**
-     * add a routing rule to the current application
-     *
-     * @param mixed $conditions (uri_param | conditions)
-     * @param mixed $instruction (rewrite_path | closure)
-     * @param integer $cache (seconds)
-     * @return void
-     */
-    public static function add_route($conditions, $instruction, $cache = null, $override = false){
-        // parse route
-        $route = null;
-        $conditions     = is_string($conditions) ? array('URI' => $conditions) : $conditions;
-        $rewrite_path   = is_string($instruction) ? $instruction : null;
-        $closure        = is_object($instruction) ? $instruction : null;
-        $override       = ($override !== false) ? true : false;
-        $route = array(
-            'application'   => $_ENV['CURRENT'],
-            'hash'          => md5(serialize($conditions)),
-            'conditions'    => $conditions,
-            'params'        => array(),
-            'rewrite_path'  => $rewrite_path,
-            'closure'       => $closure,
-            'cache'         => $cache,
-            'override'      => $override
-        );
-
-        // record route
-        if ($_ENV['CURRENT'] != null){
-            $_ENV['APPS'][$_ENV['CURRENT']]['APP_ROUTES'][] = $route;
-        } else {
-            $_ENV['WEBSITE_ROUTES'][] = $route;
-        }
-    }
-
-    /**
-     * load the destination path resource and exit
-     *
-     * @param string $path
-     * @return void
-     */
-    public static function load_path($path){
-        // find appropriate mime type
-        if (preg_match('/\.php$/', $_SERVER['PATH_INFO'])){
-            $mime_type = 'text/html';
-        } else if (preg_match('/\.[a-z0-9]+$/', $_SERVER['PATH_INFO'])){
-            $mime_type = getmimetype($_SERVER['PATH_INFO']);
-        } else if (preg_match('/\.php$/', $path)){
-            $mime_type = 'text/html';
-        } else {
-            $mime_type = getmimetype($path);
-        }
-
-        // output content type header
-        header("Content-Type: $mime_type");
-
-        // load path resource
-        $htdocs_root = "{$_ENV['APPS'][$_ENV['CURRENT']]['APP_SRC_ROOT']}/htdocs";
-        if (is_file("{$htdocs_root}{$path}")){
-            if (preg_match('/\.php$/', $path)){
-                include "{$htdocs_root}{$path}";
-            } else {
-                $fp = fopen("{$htdocs_root}{$path}", 'rb');
-                header('Content-Length: ' . filesize("{$htdocs_root}{$path}"));
-                fpassthru($fp);
-            }
-        } else {
-            self::fail(404);
-        }
-
-        // exit
-        exit;
-    }
-
-    /**
-     * record debug statement
-     *
-     * @param string $message
-     * @param mixed $data
-     * @return boolean
-     */
-    public static function debug($message, $data = null){
-        if ($_ENV['DEBUG']){
-            if ($data != null){
-                ChromePhp::log("{$_SERVER['PATH_INFO']}: {$message}", $data);
-            } else {
-                ChromePhp::log("{$_SERVER['PATH_INFO']}: {$message}");
-            }
-        }
-    }
-
-    /**
-     * record an HTTP failure
-     *
-     * @param integer $code
-     * @param string $message
-     * @return void
-     */
-    public static function fail($code, $message = null){
-        if (isset($_ENV['HTTP_CODE'][$code])){
-            self::debug("{$code} - {$message}", $_ENV['HTTP_CODE'][$code]);
-            if (isset($_ENV['HTTP_CODE'][$code]['path'])){
-                if (is_file($_ENV['APPS'][$_ENV['CURRENT']]['SCRIPT_ROOT'] . '/' . $_ENV['HTTP_CODE'][$code]['path'])){
-                    $PARAMS['ERROR_CODE'] = $code;
-                    $PARAMS['ERROR_TITLE'] = $_ENV['HTTP_CODE'][$code]['title'];
-                    $PARAMS['ERROR_DESCRIPTION'] = $_ENV['HTTP_CODE'][$code]['description'];
-                    $PARAMS['ERROR_TRANSLATION'] = $_ENV['HTTP_CODE'][$code]['translation'];
-                    include $_ENV['APPS'][$_ENV['CURRENT']]['SCRIPT_ROOT'] . '/' . $_ENV['HTTP_CODE'][$code]['path'];
-                    exit;
-                }
-            } else {
-                echo "<h1>{$code} - {$_ENV['HTTP_CODE'][$code]['title']}</h1>";
-                echo "<div onmouseover=\"this.innerHTML='" . preg_quote($_ENV['HTTP_CODE'][$code]['translation'], "'") . "';\" onmouseout=\"this.innerHTML='" . preg_quote($_ENV['HTTP_CODE'][$code]['description'], "'") . "';\">{$_ENV['HTTP_CODE'][$code]['description']}</div>";
-            }
-        } else {
-            self::debug("{$code} - {$message}");
-            echo "<h1>{$code} - Unknown Error</h1>";
-            echo "<div>{$message}</div>";
-        }
         exit;
     }
 

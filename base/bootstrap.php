@@ -145,7 +145,7 @@ if (count($_ENV['RUN']) >= 1){
                     $_SERVER['PATH_INFO'] = preg_replace('/\?.*$/', '', $_SERVER['REQUEST_URI']);
 
                     // process app includables, loadables, and configurations
-                    foreach($_ENV['APPS'] as $app_name => $name){
+                    foreach($_ENV['APPS'] as $app_name => $app){
                         // identify includable app libraries
                         $_ENV['APPS'][$app_name]['APP_LIB_FILES'] = glob("{$app['APP_LIB_ROOT']}/*.php");
 
