@@ -126,15 +126,14 @@ class Ellipsis {
         }
         if ($content_type != null){
             switch($content_type){
-                case 'text/html':
-                case 'text/xml':
-                    return('html');
+                case 'plain/text':
+                    return('text');
                 case 'application/json':
                 case 'application/x-json':
                     return('json');
             }
         }
-        return 'text';
+        return 'html';
     }
 
     /**
