@@ -1,7 +1,7 @@
 <?php
 
 /**
- * useful everyday functions missing from PHP
+ * ellipsis functions (most of which I wish were built into PHP)
  *
  * @package ellipsis
  * @subpackage global
