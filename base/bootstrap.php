@@ -73,16 +73,16 @@ if (count($_ENV['RUN']) >= 1){
     spl_autoload_register('ellipsis_autoload_modules');
 
     // uncover any mystery
-    if (!preg_match('/\/htdocs$/', $_SERVER['DOCUMENT_ROOT']) && is_link($_SERVER['DOCUMENT_ROOT'])){
+    if (!preg_match('/(\/|\\\\)htdocs$/', $_SERVER['DOCUMENT_ROOT']) && is_link($_SERVER['DOCUMENT_ROOT'])){
         $real = readlink($_SERVER['DOCUMENT_ROOT']);
-        if (preg_match('/\/htdocs$/', $real)){
+        if (preg_match('/(\/|\\\\)htdocs$/', $real)){
             $_SERVER['DOCUMENT_ROOT'] = $real;
         }
     }
 
     // validate and load the website configuration
-    if (preg_match('/\/htdocs$/', $_SERVER['DOCUMENT_ROOT'])){
-        $website_root       = preg_replace('/\/htdocs$/', '', $_SERVER['DOCUMENT_ROOT']);
+    if (preg_match('/(\/|\\\\)htdocs$/', $_SERVER['DOCUMENT_ROOT'])){
+        $website_root       = preg_replace('/(\/|\\\\)htdocs$/', '', $_SERVER['DOCUMENT_ROOT']);
         $website_name       = preg_replace('/^.*\/([^\/]+)$/', '$1', $website_root);
         $website_config     = "{$website_root}/config.php";
         $website_routes     = "{$website_root}/routes.php";
@@ -216,7 +216,11 @@ if (count($_ENV['RUN']) >= 1){
                 $_ENV['BOOT_ERRORS'][] = "The apps directory could not be found";
             }
         } else {
-            $_ENV['BOOT_ERRORS'][] = "The website profile is either invalid, missing or configured incorrectly";
+            if (!is_dir($website_root)) $_ENV['BOOT_ERRORS'][] = "The website root directory is not a directory ({$website_root})";
+            if (!is_file($website_config)) $_ENV['BOOT_ERRORS'][] = "The website config file is missing ({$website_config})";
+            if (!is_file($website_routes)) $_ENV['BOOT_ERRORS'][] = "The website routes file is missing ({$website_routes})";
+            if (!is_dir($website_cache)) $_ENV['BOOT_ERRORS'][] = "The website cache directory is missing ({$website_cache})";
+            if (!is_dir($website_logs)) $_ENV['BOOT_ERRORS'][] = "The website logs directory is missing ({$website_logs})";
         }
     } else {
         $_ENV['BOOT_ERRORS'][] = "Could not find the htdocs directory in the website profile";
