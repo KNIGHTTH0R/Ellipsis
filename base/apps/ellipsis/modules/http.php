@@ -82,6 +82,26 @@ class HTTP {
     }
 
     /**
+     * download a remote URI and return or write to disk
+     *
+     * @param string $uri
+     * @param string $path
+     * @return mixed (no path = string contents or null, path = boolean)
+     */
+    public static function download($uri, $path = null){
+        $result = self::get($uri);
+        if ($result->status == 200 && $result->method == 'GET' && $result->body != '' && $result->error == ''){
+            if ($path != null && is_writable($path)){
+                return (file_put_contents($path, $result->body) !== false) ? true : false;
+            } else {
+                return $result->body;
+            }
+        } else {
+            return null;
+        }
+    }
+
+    /**
      * process a url get request
      *
      * @param string $uri
