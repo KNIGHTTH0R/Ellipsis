@@ -47,8 +47,8 @@ function ellipsis_autoload_modules($class_name){
         if ($_ENV['CURRENT'] != null){
             $found = false;
             foreach($all as $app_name){
-                if ($found) $authorized[] = $app_name;
                 if ($app_name == $_ENV['CURRENT']) $found = true;
+                if ($found) $authorized[] = $app_name;
             }
         } else {
             $authorized = $all;
