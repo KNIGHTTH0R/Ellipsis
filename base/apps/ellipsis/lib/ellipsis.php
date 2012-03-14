@@ -10,75 +10,10 @@
  */
 
 /**
- * determine if passed array is an associative array or not
- *
- * @param array $array
- * @return boolean
- */
-function is_associative_array($array){
-    if (!is_array($array) || empty($array)) return false;
-    $keys = array_keys($array);
-    return array_keys($keys) !== $keys;
-}
-
-/**
- * recursively extend one array with another
- *
- * @param array $array1
- * @param array $array2
- * @return array
- */
-function array_extend($array1, $array2){
-    $array1 = (is_array($array1)) ? $array1 : array();
-    $array2 = (is_array($array2)) ? $array2 : array();
-    foreach($array2 as $k=>$v){
-        if (is_array($v) && is_associative_array($v)){
-            if(!isset($array1[$k])) $array1[$k] = $v;
-            else $array1[$k] = array_extend($array1[$k], $v);
-        } else {
-            if(is_array($v)){
-                if (isset($array1[$k]) && is_array($array1[$k])) $array1[$k] = array_merge($array1[$k], $v);
-                else $array1[$k] = $v;
-            } else $array1[$k] = $v;
-        }
-    }
-    return $array1;
-}
-
-/**
- * checks if a regexp exists in an array
- *
- * @param string $regexp
- * @param array $haystack
- * @return boolean
- */
-function preg_array($regexp, $haystack){
-    // extract each recursive value
-    $values = array();
-    array_walk_recursive($haystack, create_function('$val, $key, $obj', 'array_push($obj, $val);'), &$values);
-    foreach($values as $value){
-        if (preg_match($regexp, $value)){
-            return true;
-        }
-    }
-    return false;
-}
-
-/**
- * determine if the passed string is a valid regular expression
- *
- * @param string $regexp
- * @return boolean
- */
-function is_regexp($regexp){
-    return (@preg_match($regexp, null) !== false);
-}
-
-/**
  * inflection exceptions
  * note: sourced from Akelos
  */
-$inflection_exceptions = array(
+$_ENV['INFLECTION_EXCEPTIONS'] = array(
     'plural' => array(
         '/(quiz)$/i' => '\1zes',
         '/^(ox)$/i' => '\1en',
@@ -145,35 +80,276 @@ $inflection_exceptions = array(
 );
 
 /**
- * singularize an english noun
- * note: sourced from Akelos
+ * mime types
+ */
+$_ENV['MIME_TYPES'] = array(
+    'ascii' => array(
+        'js'    => 'application/x-javascript',
+        'css'   => 'text/css',
+        'rdf'   => 'application/rdf+xml',
+        'xul'   => 'application/vnd.mozilla.xul+xml',
+        'wbxml' => 'application/vnd.wap.wbxml',
+        'wmlc'  => 'application/vnd.wap.wmlc',
+        'wmlsc' => 'application/vnd.wap.wmlscriptc',
+        'vxml'  => 'application/voicexml+xml',
+        'htm'   => 'text/html',
+        'html'  => 'text/html',
+        'xml'   => 'application/xml',
+        'xsl'   => 'application/xml',
+        'dtd'   => 'application/xml-dtd',
+        'xslt'  => 'application/xslt+xml'
+    ),
+    'binary' => array(
+        'doc'   => 'application/msword',
+        'bin'   => 'application/octet-stream',
+        'exe'   => 'application/octet-stream',
+        'class' => 'application/octet-stream',
+        'so'    => 'application/octet-stream',
+        'dll'   => 'application/octet-stream',
+        'pdf'   => 'application/pdf',
+        'eps'   => 'application/postscript',
+        'ps'    => 'application/postscript',
+        'xls'   => 'application/vnd.ms-excel',
+        'ppt'   => 'application/vnd.ms-powerpoint',
+        'sit'   => 'application/x-stuffit',
+        'tgz'   => 'application/x-tar',
+        'tar'   => 'application/x-tar',
+        'zip'   => 'application/zip',
+        'jpg'   => 'image/jpeg',
+        'jpeg'  => 'image/jpeg',
+        'gif'   => 'image/gif',
+        'png'   => 'image/png',
+        'ico'   => 'image/x-icon',
+        'mov'   => 'video/quicktime',
+        'qt'    => 'video/quicktime',
+        'mp3'   => 'audio/mpeg',
+        'mp4'   => 'application/x-shockwave-flash',
+        'avi'   => 'application/x-shockwave-flash',
+        'swf'   => 'application/x-shockwave-flash'
+    )
+);
+
+/**
+ * recursively extend one array with another
  *
- * @param string $noun
+ * @param array $array1
+ * @param array $array2
+ * @return array
+ */
+function array_extend($array1, $array2){
+    $array1 = (is_array($array1)) ? $array1 : array();
+    $array2 = (is_array($array2)) ? $array2 : array();
+    foreach($array2 as $k=>$v){
+        if (is_array($v) && is_associative_array($v)){
+            if(!isset($array1[$k])) $array1[$k] = $v;
+            else $array1[$k] = array_extend($array1[$k], $v);
+        } else {
+            if(is_array($v)){
+                if (isset($array1[$k]) && is_array($array1[$k])) $array1[$k] = array_merge($array1[$k], $v);
+                else $array1[$k] = $v;
+            } else $array1[$k] = $v;
+        }
+    }
+    return $array1;
+}
+
+/**
+ * convert ascii to hexadecimal
+ *
+ * @param string $ascii
  * @return string
  */
-function singularize($noun){
-    global $inflection_exceptions;
-    $lowercased_noun = strtolower($noun);
+function asciihex($ascii){
+    $length = strlen($ascii);
+    $hex = '';
+    for ($i = 0; $i < $length; $i++){
+        $hex .= sprintf("%02x", ord(substr($ascii, $i, 1)));
+    }
+    return $hex;
+}
 
-    foreach ($inflection_exceptions['uncountable'] as $_uncountable){
-        if(substr($lowercased_noun,(-1*strlen($_uncountable))) == $_uncountable){
-            return $noun;
+/**
+ * decrypt data
+ *
+ * @param string $salt
+ * @param string $encrypted
+ * @return mixed $unencrypted
+ */
+function decrypt($salt, $encrypted){
+    $decrypted = rtrim(mcrypt_decrypt(MCRYPT_RIJNDAEL_256, md5($salt), base64_decode($encrypted), MCRYPT_MODE_CBC, md5(md5($salt))), "\0");
+    return $decrypted;
+}
+
+/**
+ * encrypt data
+ *
+ * @param string $salt
+ * @param mixed $unencrypted
+ * @return string $encrypted
+ */
+function encrypt($salt, $unencrypted){
+    $encrypted = base64_encode(mcrypt_encrypt(MCRYPT_RIJNDAEL_256, md5($salt), $unencrypted, MCRYPT_MODE_CBC, md5(md5($salt))));
+    return $encrypted;
+}
+
+/**
+ * get the file extension for a particular resource
+ * 
+ * @param string $path
+ * @return string|null
+ * 
+ */
+function getextension($path)
+{
+	$extension = null;
+    if (preg_match('/\.([a-z0-9]+)$/', $path, $found)){
+		$extension = $found[1];
+	}
+	return $extension;
+}
+
+/**
+ * get the file type for a particular resource
+ *
+ * @param string $path
+ * @return string|null
+ */
+function getfiletype($path){
+	$extension = getextension($path);
+	if($extension!=null)
+	{
+        if (isset($_ENV['MIME_TYPES']['binary'][$extension])){
+            return 'binary';
+        } else if (isset($_ENV['MIME_TYPES']['ascii'][$extension])){
+            return 'ascii';
         }
     }
+    return null;
+}
 
-    foreach ($inflection_exceptions['irregular'] as $_plural=> $_singular){
-        if (preg_match('/('.$_singular.')$/i', $noun, $arr)){
-            return preg_replace('/('.$_singular.')$/i', substr($arr[0],0,1).substr($_plural,1), $noun);
-        }
+/**
+ * get the mime type for a particular resource
+ *
+ * @param string $path
+ * @return string
+ */
+function getmimetype($path){
+	$extension = getextension($path);
+    $filetype = getfiletype($path);
+    if ($filetype != null){
+        return $_ENV['MIME_TYPES'][$filetype][$extension];
+    } else {
+        return 'text/plain';
+    }
+}
+
+/**
+ * convert hexadecimal to ascii
+ *
+ * @param string $hex
+ * @return string
+ */
+function hexascii($hex){
+    $length = strlen($hex);
+    $ascii = '';
+    for ($i = 0; $i < $length; $i+=2){
+        $ascii .= chr(hexdec(substr($hex, $i, 2)));
+    }
+    return $ascii;
+}
+
+/**
+ * convert hex to rgb
+ *
+ * @param string $hex
+ * @retrun array
+ */
+function hexrgb($hex){
+    $hex = ($hex[0] == '#') ? substr($hex, 1) : $hex;
+
+    if (strlen($hex) == 3){
+        list($r, $g, $b) = array($hex[0].$hex[0], $hex[1].$hex[1], $hex[2].$hex[2]);
+    } else if (strlen($hex) == 6){
+        list($r, $g, $b) = array($hex[0].$hex[1], $hex[2].$hex[3], $hex[4].$hex[5]);
     }
 
-    foreach ($inflection_exceptions['singular'] as $rule => $replacement){
-        if (preg_match($rule, $noun)){
-            return preg_replace($rule, $replacement, $noun);
-        }
+    if (isset($r) && isset($g) && isset($b)){
+        return array(hexdec($r), hexdec($g), hexdec($b));
+    } else {
+        return array(0, 0, 0);
     }
+}
 
-    return $noun;
+/**
+ * determine if passed array is an associative array or not
+ *
+ * @param array $array
+ * @return boolean
+ */
+function is_associative_array($array){
+    if (!is_array($array) || empty($array)) return false;
+    $keys = array_keys($array);
+    return array_keys($keys) !== $keys;
+}
+
+/**
+ * determine if the passed string is a valid email address
+ *
+ * @param string $email
+ * @return boolean
+ */
+function is_email($email){
+    return (filter_var($email, FILTER_VALIDATE_EMAIL) !== false);
+}
+
+/**
+ * determine if the passed string is a valid IP address according to IPV4 and IPV6 rules
+ *
+ * @param string $ip
+ * @return boolean
+ */
+function is_ip($ip){
+    return (filter_var($ip, FILTER_VALIDATE_IP) !== false);
+}
+
+/**
+ * determine if the passed string is a valid regular expression according to Perl Regexp
+ *
+ * @param string $regexp
+ * @return boolean
+ */
+function is_regexp($regexp){
+    return (@preg_match($regexp, null) !== false);
+}
+
+/**
+ * determine if the passed string is a valid URI according to RFC2396
+ *
+ * @param string $uri
+ * @return boolean
+ */
+function is_uri($uri){
+    return (filter_var($uri, FILTER_VALIDATE_URL) !== false);
+}
+
+/**
+ * alias for is_uri
+ */
+function is_url($uri){
+    return is_uri($uri);
+}
+
+/**
+ * returns the jsonp encoded representation of a value
+ *
+ * @param string $jsonp
+ * @param mixed $value
+ * @param integer $options
+ * @return string
+ */
+function jsonp_encode($jsonp, $value, $options = null){
+    $option = ($options != null) ? 0 : $options;
+    return $jsonp . '(' . json_encode($value, $options) . ');';
 }
 
 /**
@@ -184,28 +360,114 @@ function singularize($noun){
  * @return $string
  */
 function pluralize($noun){
-    global $inflection_exceptions;
     $lowercased_noun = strtolower($noun);
 
-    foreach ($inflection_exceptions['uncountable'] as $_uncountable){
-        if(substr($lowercased_noun,(-1*strlen($_uncountable))) == $_uncountable){
+    foreach($_ENV['INFLECTION_EXCEPTIONS']['uncountable'] as $uncountable){
+        if(substr($lowercased_noun,(-1*strlen($uncountable))) == $uncountable){
             return $noun;
         }
     }
 
-    foreach ($inflection_exceptions['irregular'] as $_plural=> $_singular){
-        if (preg_match('/('.$_plural.')$/i', $noun, $arr)){
-            return preg_replace('/('.$_plural.')$/i', substr($arr[0],0,1).substr($_singular,1), $noun);
+    foreach($_ENV['INFLECTION_EXCEPTIONS']['irregular'] as $plural => $singular){
+        if (preg_match('/('.$plural.')$/i', $noun, $arr)){
+            return preg_replace('/('.$plural.')$/i', substr($arr[0],0,1).substr($singular,1), $noun);
         }
     }
 
-    foreach ($inflection_exceptions['plural'] as $rule => $replacement){
+    foreach($_ENV['INFLECTION_EXCEPTIONS']['plural'] as $rule => $replacement){
         if (preg_match($rule, $noun)){
             return preg_replace($rule, $replacement, $noun);
         }
     }
 
     return $noun;
+}
+
+/**
+ * checks if a regexp exists in an array
+ *
+ * @param string $regexp
+ * @param array $haystack
+ * @return boolean
+ */
+function preg_array($regexp, $haystack){
+    // extract each recursive value
+    $values = array();
+    array_walk_recursive($haystack, create_function('$val, $key, $obj', 'array_push($obj, $val);'), &$values);
+    foreach($values as $value){
+        if (preg_match($regexp, $value)){
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * pretend to be a web environment
+ *
+ * note: this is useful for running cli unit tests
+ *
+ * @param string $domain
+ * @param string $uri
+ * @return void
+ */
+function pretend($domain = 'local.ellipsis.com', $uri = '/index.php'){
+    $wwwroot = preg_replace('/\/.ellipsis$/', '', dirname(__FILE__));
+    $_SERVER = array_merge(
+        $_SERVER,
+        array(
+            'HTTP_HOST'             => $domain,
+            'HTTP_CONNECTION'       => 'keep-alive',
+            'HTTP_USER_AGENT'       => 'Mozilla/5.0 (Macintosh; Intel Mac OSX 10_6_8) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.121 Safari/535.2',
+            'HTTP_ACCEPT'           => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'HTTP_ACCEPT_ENCODING'  => 'gzip,deflate,sdch',
+            'HTTP_ACCEPT_LANGUAGE'  => 'en-US,en;q=0.8',
+            'HTTP_ACCEPT_CHARSET'   => 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
+            'SERVER_SIGNATURE'      => '',
+            'SERVER_SOFTWARE'       => 'Apache/2.2.14 (Unix) DAV/2 mod_ssl/2.2.14 OpenSSL/0.9.8l PHP/5.3.1 mod_perl/2.0.4 Perl/v5.10.1',
+            'SERVER_NAME'           => $domain,
+            'SERVER_ADDR'           => '127.0.0.1',
+            'SERVER_PORT'           => '80',
+            'REMOTE_ADDR'           => '127.0.0.1',
+            'DOCUMENT_ROOT'         => $wwwroot,
+            'SERVER_ADMIN'          => 'root@localhost.com',
+            'SCRIPT_FILENAME'       => "{$wwwroot}/.bootstrap.php",
+            'REMOTE_PORT'           => '51212',
+            'REDIRECT_URL'          => $uri,
+            'GATEWAY_INTERFACE'     => 'CGI/1.1',
+            'SERVER_PROTOCOL'       => 'HTTP/1.1',
+            'REQUEST_METHOD'        => 'GET',
+            'QUERY_STRING'          => '',
+            'REQUEST_URI'           => $uri,
+            'SCRIPT_NAME'           => '/.bootstrap.php',
+            'PHP_SELF'              => '/.bootstrap.php'
+        )
+    );
+    $_ENV = array_merge($_ENV, array('USERNAME' => $_ENV['USER']));
+    //print '<pre>' . print_r(array($_SERVER, $_ENV), true) . '</pre>';
+}
+
+/**
+ * convert rgb to hex
+ *
+ * @param integer $r
+ * @param integer $g
+ * @param integer $b
+ * @return string
+ */
+function rgbhex($r, $g, $b){
+    $r  = intval($r);
+    $g  = intval($g);
+    $b  = intval($b);
+    $r  = dechex($r < 0 ? 0 : ($r > 255 ? 255 : $r));
+    $g  = dechex($g < 0 ? 0 : ($g > 255 ? 255 : $g));
+    $b  = dechex($b < 0 ? 0 : ($b > 255 ? 255 : $b));
+    
+    $hex = (strlen($r) < 2 ? '0' : '') . $r;
+    $hex .= (strlen($g) < 2 ? '0' : '') . $g;
+    $hex .= (strlen($b) < 2 ? '0' : '') . $b;
+
+    return $hex;
 }
 
 /**
@@ -260,104 +522,48 @@ function scandir_recursive($directory, $format = null, $excludes = array()){
 }
 
 /**
- * mime types
- */
-$_ENV['MIME_TYPES'] = array(
-    'ascii' => array(
-        'js'    => 'application/x-javascript',
-        'css'   => 'text/css',
-        'rdf'   => 'application/rdf+xml',
-        'xul'   => 'application/vnd.mozilla.xul+xml',
-        'wbxml' => 'application/vnd.wap.wbxml',
-        'wmlc'  => 'application/vnd.wap.wmlc',
-        'wmlsc' => 'application/vnd.wap.wmlscriptc',
-        'vxml'  => 'application/voicexml+xml',
-        'htm'   => 'text/html',
-        'html'  => 'text/html',
-        'xml'   => 'application/xml',
-        'xsl'   => 'application/xml',
-        'dtd'   => 'application/xml-dtd',
-        'xslt'  => 'application/xslt+xml'
-    ),
-    'binary' => array(
-        'doc'   => 'application/msword',
-        'bin'   => 'application/octet-stream',
-        'exe'   => 'application/octet-stream',
-        'class' => 'application/octet-stream',
-        'so'    => 'application/octet-stream',
-        'dll'   => 'application/octet-stream',
-        'pdf'   => 'application/pdf',
-        'eps'   => 'application/postscript',
-        'ps'    => 'application/postscript',
-        'xls'   => 'application/vnd.ms-excel',
-        'ppt'   => 'application/vnd.ms-powerpoint',
-        'sit'   => 'application/x-stuffit',
-        'tgz'   => 'application/x-tar',
-        'tar'   => 'application/x-tar',
-        'zip'   => 'application/zip',
-        'jpg'   => 'image/jpeg',
-        'jpeg'  => 'image/jpeg',
-        'gif'   => 'image/gif',
-        'png'   => 'image/png',
-        'ico'   => 'image/x-icon',
-        'mov'   => 'video/quicktime',
-        'qt'    => 'video/quicktime',
-        'mp3'   => 'audio/mpeg',
-        'mp4'   => 'application/x-shockwave-flash',
-        'avi'   => 'application/x-shockwave-flash',
-        'swf'   => 'application/x-shockwave-flash'
-    )
-);
-
-/**
- * get the file extension for a particular resource
- * 
- * @param string $path
- * @return string|null
- * 
- */
-function getextension($path)
-{
-	$extension = null;
-    if (preg_match('/\.([a-z0-9]+)$/', $path, $found)){
-		$extension = $found[1];
-	}
-	return $extension;
-}
-
-/**
- * get the file type for a particular resource
+ * singularize an english noun
+ * note: sourced from Akelos
  *
- * @param string $path
- * @return string|null
- */
-function getfiletype($path){
-	$extension = getextension($path);
-	if($extension!=null)
-	{
-        if (isset($_ENV['MIME_TYPES']['binary'][$extension])){
-            return 'binary';
-        } else if (isset($_ENV['MIME_TYPES']['ascii'][$extension])){
-            return 'ascii';
-        }
-    }
-    return null;
-}
-
-/**
- * get the mime type for a particular resource
- *
- * @param string $path
+ * @param string $noun
  * @return string
  */
-function getmimetype($path){
-	$extension = getextension($path);
-    $filetype = getfiletype($path);
-    if ($filetype != null){
-        return $_ENV['MIME_TYPES'][$filetype][$extension];
-    } else {
-        return 'text/plain';
+function singularize($noun){
+    $lowercased_noun = strtolower($noun);
+
+    foreach($_ENV['INFLECTION_EXCEPTIONS']['uncountable'] as $uncountable){
+        if(substr($lowercased_noun,(-1*strlen($uncountable))) == $uncountable){
+            return $noun;
+        }
     }
+
+    foreach($_ENV['INFLECTION_EXCEPTIONS']['irregular'] as $plural => $singular){
+        if (preg_match('/('.$singular.')$/i', $noun, $arr)){
+            return preg_replace('/('.$singular.')$/i', substr($arr[0],0,1).substr($plural,1), $noun);
+        }
+    }
+
+    foreach($_ENV['INFLECTION_EXCEPTIONS']['singular'] as $rule => $replacement){
+        if (preg_match($rule, $noun)){
+            return preg_replace($rule, $replacement, $noun);
+        }
+    }
+
+    return $noun;
+}
+
+/**
+ * generate a system tmpdir and return it's path
+ *
+ * @param void
+ * @return string or null
+ */
+function tmpdir(){
+    $tmpdir = $_ENV['TMPDIR'] . $_SERVER['UNIQUE_ID'];
+    if (!is_file($tmpdir) && !is_dir($tmpdir) && (mkdir($tmpdir))){
+        return "{$tmpdir}/";
+    }
+    return null;
 }
 
 /**
@@ -378,162 +584,5 @@ function touch_recursive($path){
         }
     }
     return touch($path);
-}
-
-/**
- * convert hex to rgb
- *
- * @param string $hex
- * @retrun array
- */
-function hexrgb($hex){
-    $hex = ($hex[0] == '#') ? substr($hex, 1) : $hex;
-
-    if (strlen($hex) == 3){
-        list($r, $g, $b) = array($hex[0].$hex[0], $hex[1].$hex[1], $hex[2].$hex[2]);
-    } else if (strlen($hex) == 6){
-        list($r, $g, $b) = array($hex[0].$hex[1], $hex[2].$hex[3], $hex[4].$hex[5]);
-    }
-
-    if (isset($r) && isset($g) && isset($b)){
-        return array(hexdec($r), hexdec($g), hexdec($b));
-    } else {
-        return array(0, 0, 0);
-    }
-}
-
-/**
- * convert rgb to hex
- *
- * @param integer $r
- * @param integer $g
- * @param integer $b
- * @return string
- */
-function rgbhex($r, $g, $b){
-    $r  = intval($r);
-    $g  = intval($g);
-    $b  = intval($b);
-    $r  = dechex($r < 0 ? 0 : ($r > 255 ? 255 : $r));
-    $g  = dechex($g < 0 ? 0 : ($g > 255 ? 255 : $g));
-    $b  = dechex($b < 0 ? 0 : ($b > 255 ? 255 : $b));
-    
-    $hex = (strlen($r) < 2 ? '0' : '') . $r;
-    $hex .= (strlen($g) < 2 ? '0' : '') . $g;
-    $hex .= (strlen($b) < 2 ? '0' : '') . $b;
-
-    return $hex;
-}
-
-/**
- * convert ascii to hexadecimal
- *
- * @param string $ascii
- * @return string
- */
-function asciihex($ascii){
-    $length = strlen($ascii);
-    $hex = '';
-    for ($i = 0; $i < $length; $i++){
-        $hex .= sprintf("%02x", ord(substr($ascii, $i, 1)));
-    }
-    return $hex;
-}
-
-/**
- * convert hexadecimal to ascii
- *
- * @param string $hex
- * @return string
- */
-function hexascii($hex){
-    $length = strlen($hex);
-    $ascii = '';
-    for ($i = 0; $i < $length; $i+=2){
-        $ascii .= chr(hexdec(substr($hex, $i, 2)));
-    }
-    return $ascii;
-}
-
-/**
- * returns the jsonp encoded representation of a value
- *
- * @param string $jsonp
- * @param mixed $value
- * @param integer $options
- * @return string
- */
-function jsonp_encode($jsonp, $value, $options = null){
-    $option = ($options != null) ? 0 : $options;
-    return $jsonp . '(' . json_encode($value, $options) . ');';
-}
-
-/**
- * encrypt data
- *
- * @param string $salt
- * @param mixed $unencrypted
- * @return string $encrypted
- */
-function encrypt($salt, $unencrypted){
-    $encrypted = base64_encode(mcrypt_encrypt(MCRYPT_RIJNDAEL_256, md5($salt), $unencrypted, MCRYPT_MODE_CBC, md5(md5($salt))));
-    return $encrypted;
-}
-
-/**
- * decrypt data
- *
- * @param string $salt
- * @param string $encrypted
- * @return mixed $unencrypted
- */
-function decrypt($salt, $encrypted){
-    $decrypted = rtrim(mcrypt_decrypt(MCRYPT_RIJNDAEL_256, md5($salt), base64_decode($encrypted), MCRYPT_MODE_CBC, md5(md5($salt))), "\0");
-    return $decrypted;
-}
-
-/**
- * pretend to be a web environment
- *
- * note: this is useful for running cli unit tests
- *
- * @param string $domain
- * @param string $uri
- * @return void
- */
-function pretend($domain = 'local.ellipsis.com', $uri = '/index.php'){
-    $wwwroot = preg_replace('/\/.ellipsis$/', '', dirname(__FILE__));
-    $_SERVER = array_merge(
-        $_SERVER,
-        array(
-            'HTTP_HOST'             => $domain,
-            'HTTP_CONNECTION'       => 'keep-alive',
-            'HTTP_USER_AGENT'       => 'Mozilla/5.0 (Macintosh; Intel Mac OSX 10_6_8) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/15.0.874.121 Safari/535.2',
-            'HTTP_ACCEPT'           => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'HTTP_ACCEPT_ENCODING'  => 'gzip,deflate,sdch',
-            'HTTP_ACCEPT_LANGUAGE'  => 'en-US,en;q=0.8',
-            'HTTP_ACCEPT_CHARSET'   => 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
-            'SERVER_SIGNATURE'      => '',
-            'SERVER_SOFTWARE'       => 'Apache/2.2.14 (Unix) DAV/2 mod_ssl/2.2.14 OpenSSL/0.9.8l PHP/5.3.1 mod_perl/2.0.4 Perl/v5.10.1',
-            'SERVER_NAME'           => $domain,
-            'SERVER_ADDR'           => '127.0.0.1',
-            'SERVER_PORT'           => '80',
-            'REMOTE_ADDR'           => '127.0.0.1',
-            'DOCUMENT_ROOT'         => $wwwroot,
-            'SERVER_ADMIN'          => 'root@localhost.com',
-            'SCRIPT_FILENAME'       => "{$wwwroot}/.bootstrap.php",
-            'REMOTE_PORT'           => '51212',
-            'REDIRECT_URL'          => $uri,
-            'GATEWAY_INTERFACE'     => 'CGI/1.1',
-            'SERVER_PROTOCOL'       => 'HTTP/1.1',
-            'REQUEST_METHOD'        => 'GET',
-            'QUERY_STRING'          => '',
-            'REQUEST_URI'           => $uri,
-            'SCRIPT_NAME'           => '/.bootstrap.php',
-            'PHP_SELF'              => '/.bootstrap.php'
-        )
-    );
-    $_ENV = array_merge($_ENV, array('USERNAME' => $_ENV['USER']));
-    //print '<pre>' . print_r(array($_SERVER, $_ENV), true) . '</pre>';
 }
 
