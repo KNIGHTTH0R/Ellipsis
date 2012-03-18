@@ -345,6 +345,84 @@ class Image {
     }
 
     /**
+     * create a single line text label image
+     *
+     * Note: If a $ttf_path is provided as just a filename then it will be
+     * assumed that to exist under "apps/ellipsis/src/assets/fonts".
+     *
+     * @param string $destination_path
+     * @param string $text
+     * @param string $ttf_path
+     * @param string $font_size (points)
+     * @param string $line_height
+     * @param integer $padding
+     * @param string $fgcolor_hex
+     * @param string $bgcolor_hex
+     * @return boolean
+     */
+    public static function label($destination_path, $text, $ttf_path = 'LiberationSans-Regular.ttf', $font_size = 12, $line_height = 24, $padding = 0, $fgcolor_hex = '#000000', $bgcolor_hex = '#ffffff'){
+        // fill in the path if one was not provided
+        if (!preg_match('/\//', $ttf_path)){
+            $ttf_path = "{$_ENV['APPS']['ellipsis']['APP_SRC_ROOT']}/assets/fonts/{$ttf_path}";
+        } else {
+            return false;
+        }
+
+        // find the font file
+        if (is_file($ttf_path)){
+            // compute font height
+            list($fbl_x, $fbl_y, $fbr_x, $fbr_y, $ftr_x, $ftr_y, $ftl_x, $ftl_y) = imagettfbbox($font_size, 0, $ttf_path, $text);
+			$font_height = abs($ftl_y - $fbl_y);
+
+            // compute bounding box dimensions
+            list($bl_x, $bl_y, $br_x, $br_y, $tr_x, $tr_y, $tl_x, $tl_y) = imagettfbbox($font_size, 0, $ttf_path, $text);
+            $width = abs($tr_x - $tl_x);
+            $height = abs($tl_y - $bl_y);
+			$offset_y = $font_height;
+			$offset_x = 0;
+
+            // build the text label
+            if ($bgcolor_hex == null){
+                $image = self::transparent(null, $width + ($padding * 2) + 1, $height + ($padding * 2) + 1);
+            } else {
+                $image = imagecreatetruecolor($width + ($padding * 2) + 1, $height + ($padding * 2) + 1);
+            }
+
+            // set the foreground
+            list($fg_r, $fg_g, $fg_b) = hexrgb($fgcolor_hex);
+            $foreground = imagecolorallocate($image, $fg_r, $fg_g, $fg_b);
+
+            // set the background
+            if ($bgcolor_hex == null){
+                $background = imagecolorallocatealpha($image, 1, 1, 1, 127);
+            } else {
+                // perform some manual antialiasing trickery
+                if (preg_match('/^#*000000$/i', $bgcolor_hex)){
+                    $bgcolor_hex = '#111111';
+                }
+                list($bg_r, $bg_g, $bg_b) = hexrgb($bgcolor_hex);
+                $background = imagecolorallocate($image, $bg_r, $bg_g, $bg_b);
+            }
+            imagefill($image, 0, 0, $background);
+
+            // disable interlacing
+            imageinterlace($image, false);
+
+            // enable antialiasing
+            imageantialias($image, true);
+
+            // render the image
+            imagettftext($image, $font_size, 0, $offset_x + $padding, $offset_y + $padding, $foreground, $ttf_path, $text);
+
+            // output png object
+            return self::save($image, $destination_path);
+        }
+
+        // something failed
+        return false;
+    }
+
+    /**
      * overlay one image on top of another
      *
      * @param string $base_path
@@ -385,6 +463,17 @@ class Image {
 
         // something failed
         return false;
+    }
+
+    /**
+     * distort an image to a new z-axis rotation perspective
+     *
+     * @param string $source_path
+     * @param string $destination_path
+     * @param integer $z_degrees
+     * @return boolean
+     */
+    public static function perspective($source_path, $destination_path, $z_degrees){
     }
 
     /**
