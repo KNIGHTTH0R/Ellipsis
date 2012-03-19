@@ -55,7 +55,7 @@ function array_extend($array1, $array2){
 function preg_array($regexp, $haystack){
     // extract each recursive value
     $values = array();
-    array_walk_recursive($haystack, create_function('$val, $key, $obj', 'array_push($obj, $val);'), &$values);
+    array_walk_recursive($haystack, create_function('$val, $key, $obj', 'array_push($obj, $val);'), $values);
     foreach($values as $value){
         if (preg_match($regexp, $value)){
             return true;
