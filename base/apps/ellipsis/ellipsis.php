@@ -190,6 +190,7 @@ class Ellipsis {
                 // process rewrite_path
                 if (!preg_match('/\$\{/', $route['rewrite_path'])){
                     $_ENV['CACHE_TIME'] = $route['cache'];
+
                     self::load_path($route['rewrite_path']);
                 }
             }
@@ -735,7 +736,15 @@ class Ellipsis {
         header("Content-Type: $mime_type");
 
         // load path resource
-        $htdocs_root = "{$_ENV['APPS'][$_ENV['CURRENT']]['APP_SRC_ROOT']}/htdocs";
+        if(is_null($_ENV['CURRENT']))
+        {
+            // website route
+            $htdocs_root = "{$_ENV['WEBSITE_ROOT']}/htdocs/";
+            
+        }else{
+            // app route
+            $htdocs_root = "{$_ENV['APPS'][$_ENV['CURRENT']]['APP_SRC_ROOT']}/htdocs/";
+        }
         if (is_file("{$htdocs_root}{$path}")){
             if (preg_match('/\.php$/', $path)){
                 include "{$htdocs_root}{$path}";
