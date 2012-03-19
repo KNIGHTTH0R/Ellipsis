@@ -12,8 +12,8 @@
 
 // global settings
 ini_set('error_reporting', E_ALL | E_STRICT);
-ini_set('display_errors', 'Off');
-ini_set('log_errors', 'Off');
+ini_set('display_errors', 'On');
+ini_set('log_errors', 'On');
 // @todo: add errors to the website log file
 
 // create a place to store boot errors pre-Ellipsis
@@ -73,16 +73,16 @@ if (count($_ENV['RUN']) >= 1){
     spl_autoload_register('ellipsis_autoload_modules');
 
     // uncover any mystery
-    if (!preg_match('/(\/|\\\\)htdocs$/', $_SERVER['DOCUMENT_ROOT']) && is_link($_SERVER['DOCUMENT_ROOT'])){
-        $real = readlink($_SERVER['DOCUMENT_ROOT']);
-        if (preg_match('/(\/|\\\\)htdocs$/', $real)){
+    if (!preg_match('/\/htdocs$/', $_SERVER['DOCUMENT_ROOT']) && $_SERVER['DOCUMENT_ROOT'] != readlink($_SERVER['DOCUMENT_ROOT'])){
+        $real = str_replace('\\','/',readlink($_SERVER['DOCUMENT_ROOT']));
+        if (preg_match('/\/htdocs$/', $real)){
             $_SERVER['DOCUMENT_ROOT'] = $real;
         }
     }
 
     // validate and load the website configuration
-    if (preg_match('/(\/|\\\\)htdocs$/', $_SERVER['DOCUMENT_ROOT'])){
-        $website_root       = preg_replace('/(\/|\\\\)htdocs$/', '', $_SERVER['DOCUMENT_ROOT']);
+    if (preg_match('/\/htdocs$/', $_SERVER['DOCUMENT_ROOT'])){
+        $website_root       = preg_replace('/\/htdocs$/', '', $_SERVER['DOCUMENT_ROOT']);
         $website_name       = preg_replace('/^.*\/([^\/]+)$/', '$1', $website_root);
         $website_config     = "{$website_root}/config.php";
         $website_routes     = "{$website_root}/routes.php";
@@ -128,6 +128,7 @@ if (count($_ENV['RUN']) >= 1){
                         );
                     } else {
                         $_ENV['BOOT_ERRORS'][] = "The application `{$app_name}` is either invalid, missing or configured incorrectly";
+                        // TODO: Tell user what is missing specifically to reduce lunacy, or generate them
                     }
                 }
 
