@@ -12,8 +12,8 @@
 
 // global settings
 ini_set('error_reporting', E_ALL | E_STRICT);
-ini_set('display_errors', 'Off');
-ini_set('log_errors', 'Off');
+ini_set('display_errors', 'On');
+ini_set('log_errors', 'On');
 // @todo: add errors to the website log file
 
 // create a place to store boot errors pre-Ellipsis
@@ -73,8 +73,8 @@ if (count($_ENV['RUN']) >= 1){
     spl_autoload_register('ellipsis_autoload_modules');
 
     // uncover any mystery
-    if (!preg_match('/\/htdocs$/', $_SERVER['DOCUMENT_ROOT']) && is_link($_SERVER['DOCUMENT_ROOT'])){
-        $real = readlink($_SERVER['DOCUMENT_ROOT']);
+    if (!preg_match('/\/htdocs$/', $_SERVER['DOCUMENT_ROOT']) && $_SERVER['DOCUMENT_ROOT'] != readlink($_SERVER['DOCUMENT_ROOT'])){
+        $real = str_replace('\\','/',readlink($_SERVER['DOCUMENT_ROOT']));
         if (preg_match('/\/htdocs$/', $real)){
             $_SERVER['DOCUMENT_ROOT'] = $real;
         }
@@ -128,6 +128,7 @@ if (count($_ENV['RUN']) >= 1){
                         );
                     } else {
                         $_ENV['BOOT_ERRORS'][] = "The application `{$app_name}` is either invalid, missing or configured incorrectly";
+                        // TODO: Tell user what is missing specifically to reduce lunacy, or generate them
                     }
                 }
 
@@ -216,7 +217,11 @@ if (count($_ENV['RUN']) >= 1){
                 $_ENV['BOOT_ERRORS'][] = "The apps directory could not be found";
             }
         } else {
-            $_ENV['BOOT_ERRORS'][] = "The website profile is either invalid, missing or configured incorrectly";
+            if (!is_dir($website_root)) $_ENV['BOOT_ERRORS'][] = "The website root directory is not a directory ({$website_root})";
+            if (!is_file($website_config)) $_ENV['BOOT_ERRORS'][] = "The website config file is missing ({$website_config})";
+            if (!is_file($website_routes)) $_ENV['BOOT_ERRORS'][] = "The website routes file is missing ({$website_routes})";
+            if (!is_dir($website_cache)) $_ENV['BOOT_ERRORS'][] = "The website cache directory is missing ({$website_cache})";
+            if (!is_dir($website_logs)) $_ENV['BOOT_ERRORS'][] = "The website logs directory is missing ({$website_logs})";
         }
     } else {
         $_ENV['BOOT_ERRORS'][] = "Could not find the htdocs directory in the website profile";
