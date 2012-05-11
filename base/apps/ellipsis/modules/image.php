@@ -345,81 +345,177 @@ class Image {
     }
 
     /**
-     * create a single line text label image
+     * create a text image
      *
      * Note: If a $ttf_path is provided as just a filename then it will be
-     * assumed that to exist under "apps/ellipsis/src/assets/fonts".
+     * assumed to exist under "apps/ellipsis/src/assets/fonts".
+     *
+     * @todo: loop through all apps (backwards) looking for the fonts
      *
      * @param string $destination_path
      * @param string $text
      * @param string $ttf_path
-     * @param string $font_size (points)
-     * @param string $line_height
-     * @param integer $padding
-     * @param string $fgcolor_hex
-     * @param string $bgcolor_hex
+     * @param int $font_px
+     * @param int $line_em
+     * @param string $color
+     * @param string $bgcolor
+     * @param int $max_width (auto wraps)
+     * @param int $rotation
      * @return boolean
      */
-    public static function label($destination_path, $text, $ttf_path = 'LiberationSans-Regular.ttf', $font_size = 12, $line_height = 24, $padding = 0, $fgcolor_hex = '#000000', $bgcolor_hex = '#ffffff'){
-        // fill in the path if one was not provided
-        if (!preg_match('/\//', $ttf_path)){
-            $ttf_path = "{$_ENV['APPS']['ellipsis']['APP_SRC_ROOT']}/assets/fonts/{$ttf_path}";
+    public static function text($destination_path, $text, $ttf_path = 'LiberationSans-Regular.ttf', $font_px = 16, $line_em = 1.5, $color = '#000000', $bgcolor = null, $max_width = null, $rotation = 0){
+        // confirm provided ttf path
+        if (preg_match('/\//', $ttf_path)){
+            if (!is_file($ttf_path)){
+                return false;
+            }
         } else {
-            return false;
-        }
-
-        // find the font file
-        if (is_file($ttf_path)){
-            // compute font height
-            list($fbl_x, $fbl_y, $fbr_x, $fbr_y, $ftr_x, $ftr_y, $ftl_x, $ftl_y) = imagettfbbox($font_size, 0, $ttf_path, $text);
-			$font_height = abs($ftl_y - $fbl_y);
-
-            // compute bounding box dimensions
-            list($bl_x, $bl_y, $br_x, $br_y, $tr_x, $tr_y, $tl_x, $tl_y) = imagettfbbox($font_size, 0, $ttf_path, $text);
-            $width = abs($tr_x - $tl_x);
-            $height = abs($tl_y - $bl_y);
-			$offset_y = $font_height;
-			$offset_x = 0;
-
-            // build the text label
-            if ($bgcolor_hex == null){
-                $image = self::transparent(null, $width + ($padding * 2) + 1, $height + ($padding * 2) + 1);
-            } else {
-                $image = imagecreatetruecolor($width + ($padding * 2) + 1, $height + ($padding * 2) + 1);
-            }
-
-            // set the foreground
-            list($fg_r, $fg_g, $fg_b) = hexrgb($fgcolor_hex);
-            $foreground = imagecolorallocate($image, $fg_r, $fg_g, $fg_b);
-
-            // set the background
-            if ($bgcolor_hex == null){
-                $background = imagecolorallocatealpha($image, 1, 1, 1, 127);
-            } else {
-                // perform some manual antialiasing trickery
-                if (preg_match('/^#*000000$/i', $bgcolor_hex)){
-                    $bgcolor_hex = '#111111';
+            // confirm if ttf path lives inside an app
+            $found = false;
+            foreach(array_reverse($_ENV['APPS']) as $key => $env){
+                $ttf_test = "{$env['APP_SRC_ROOT']}/assets/fonts/{$ttf_path}";
+                if (is_file($ttf_test)){
+                    $ttf_path = $ttf_test;
+                    $found = true;
                 }
-                list($bg_r, $bg_g, $bg_b) = hexrgb($bgcolor_hex);
-                $background = imagecolorallocate($image, $bg_r, $bg_g, $bg_b);
             }
-            imagefill($image, 0, 0, $background);
-
-            // disable interlacing
-            imageinterlace($image, false);
-
-            // enable antialiasing
-            imageantialias($image, true);
-
-            // render the image
-            imagettftext($image, $font_size, 0, $offset_x + $padding, $offset_y + $padding, $foreground, $ttf_path, $text);
-
-            // output png object
-            return self::save($image, $destination_path);
+            if (!$found) return false;
         }
 
-        // something failed
-        return false;
+        // convert font size from pixels to points
+        $font_size  = $font_px * 0.75;
+
+        // correct newlines to accommodate $max_width
+        if ($max_width != null && $max_width > 1){
+            $words = preg_split('/\s+/', $text);
+            $lines = array('');
+            foreach($words as $word){
+                $idx = count($lines) - 1;
+                $current = $lines[$idx];
+                if ($lines[$idx] == ''){
+                    $lines[$idx] = $word;
+                    continue;
+                } else {
+                    $current = $lines[$idx] . " {$word}";
+                    $current_dimension = self::text_dimensions($current, $ttf_path, $font_size, $line_em, $rotation);
+                    if ($current_dimension['width'] <= $max_width){
+                        $lines[$idx] = $current;
+                    } else {
+                        $lines[] = $word;
+                    }
+                }
+            }
+            $text = implode("\n", $lines);
+        }
+
+        // calculate the dimensions needed for this image
+        $dimensions = self::text_dimensions($text, $ttf_path, $font_size, $line_em, $rotation);
+
+        // create a transparent image container
+        $image = Image::transparent(null, $dimensions['width'], $dimensions['height']);
+
+        // add the text color to the image container
+        list($red, $green, $blue) = hexrgb($color);
+        $text_color = imagecolorallocate($image, $red, $green, $blue);
+
+        // add the background color to the image container
+        // (unless transparent)
+        if ($bgcolor != null && $bgcolor != 'transparent'){
+            list($red, $green, $blue) = hexrgb($bgcolor);
+            imagefill($image, 0, 0, imagecolorallocate($image, $red, $green, $blue));
+        }
+
+        if (preg_match('/\n/', $text)){
+            $multi = array();
+            $lines = preg_split('/\n/', $text);
+            $y = 0;
+            foreach($lines as $line){
+                $temp = array_merge(
+                    array('text' => $line),
+                    self::text_dimensions($line, $ttf_path, $font_size, $line_em, $rotation)
+                );
+                $temp['y'] += $y;
+                $multi[] = $temp;
+                
+                // write text to image
+                imagettftext($image, $font_size, $rotation, $temp['x'], $temp['y'], $text_color, $ttf_path, $temp['text']);
+                $y += $temp['height'];
+            }
+        } else {
+            // write text to image
+            imagettftext($image, $font_size, $rotation, $dimensions['x'], $dimensions['y'], $text_color, $ttf_path, $text);
+        }
+
+        // save image
+        return imagepng($image, $destination_path);
+    }
+
+    /**
+     * prebuild a text image to calculate native dimensions
+     *
+     * @param string $text
+     * @param string $ttf_path
+     * @param int $font_size
+     * @param int $rotation
+     * @return array
+     */
+    public static function text_dimensions($text, $ttf_path, $font_size, $line_em = 1, $rotation = 0){
+
+        // setup result
+        $result = array(
+            'width'     => 0,
+            'height'    => 0,
+            'x'         => 0,
+            'y'         => 0
+        );
+
+        // account for multiple lines
+        $lines = preg_split('/\n/', $text);
+        foreach($lines as $line){
+            // account for angles that fall outside of a single rotation
+            if ($rotation > 359 || $rotation < -359){
+                $rotation = intval($rotation % 360);
+            }
+            if ($rotation < 0){
+                $rotation = 360 + $rotation;
+            }
+
+            // calculate the bounding box
+            list($blx, $bly, $brx, $bry, $trx, $try, $tlx, $tly) = imagettfbbox($font_size, $rotation, $ttf_path, $line);
+
+            // calculate the text box width, height, x, and y coordinates 
+            $text_width = max($brx, $trx) - min($blx, $tlx);
+            $text_height = max($bly, $bry) - min($try, $tly);
+            $text_x = (-(min($tlx, $blx))) - 1;
+            $text_y = (-(min($try, $tly))) - 1;
+
+            // make room in the image for the text block
+            $image_width = $text_width + 1;
+            $image_height = $text_height;
+
+            // allow for line height adjustments
+            if ($line_em > 1){
+                $padding = intval((($text_height * $line_em) - $text_height) / 2);
+                $image_height += ($padding * 2);
+                $text_y += $padding;
+            }
+
+            // append the new results to the result
+            if ($result['height'] == 0){
+                // this is the first line
+                $result['width']    = $image_width;
+                $result['height']   = $image_height;
+                $result['x']        = $text_x;
+                $result['y']        = $text_y;
+            } else {
+                // only dimension adjustments from here on
+                $result['width']    = ($image_width > $result['width']) ? $image_width : $result['width'];
+                $result['height']   += $image_height;
+            }
+        }
+
+        // Send back a hash with our calculations
+        return $result;
     }
 
     /**
