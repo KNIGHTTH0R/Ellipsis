@@ -407,12 +407,13 @@ function preg_array($regexp, $haystack){
  *
  * note: this is useful for running cli unit tests
  *
+ * @param string $webroot
+ * @param string $appname
  * @param string $domain
  * @param string $uri
  * @return void
  */
-function pretend($domain = 'local.ellipsis.com', $uri = '/index.php'){
-    $wwwroot = preg_replace('/\/.ellipsis$/', '', dirname(__FILE__));
+function pretend($webroot, $appname, $domain = 'local.ellipsis.com', $uri = '/index.php'){
     $_SERVER = array_merge(
         $_SERVER,
         array(
@@ -429,9 +430,9 @@ function pretend($domain = 'local.ellipsis.com', $uri = '/index.php'){
             'SERVER_ADDR'           => '127.0.0.1',
             'SERVER_PORT'           => '80',
             'REMOTE_ADDR'           => '127.0.0.1',
-            'DOCUMENT_ROOT'         => $wwwroot,
+            'DOCUMENT_ROOT'         => $webroot,
             'SERVER_ADMIN'          => 'root@localhost.com',
-            'SCRIPT_FILENAME'       => "{$wwwroot}/.bootstrap.php",
+            'SCRIPT_FILENAME'       => "{$webroot}/.init.php",
             'REMOTE_PORT'           => '51212',
             'REDIRECT_URL'          => $uri,
             'GATEWAY_INTERFACE'     => 'CGI/1.1',
@@ -439,12 +440,25 @@ function pretend($domain = 'local.ellipsis.com', $uri = '/index.php'){
             'REQUEST_METHOD'        => 'GET',
             'QUERY_STRING'          => '',
             'REQUEST_URI'           => $uri,
-            'SCRIPT_NAME'           => '/.bootstrap.php',
-            'PHP_SELF'              => '/.bootstrap.php'
+            'SCRIPT_NAME'           => '/.init.php',
+            'PHP_SELF'              => '/.init.php'
         )
     );
     $_ENV = array_merge($_ENV, array('USERNAME' => $_ENV['USER']));
     //print '<pre>' . print_r(array($_SERVER, $_ENV), true) . '</pre>';
+}
+
+/**
+ * determine if request variable exists and, if so, return it's value, null otherwise
+ *
+ * @param string $key
+ * @return string
+ */
+function request($key){
+    if (array_key_exists($key, $_REQUEST)){
+        return $_REQUEST[$key];
+    }
+    return null;
 }
 
 /**
@@ -585,4 +599,27 @@ function touch_recursive($path){
     }
     return touch($path);
 }
+
+/**
+ * determine if the passed resource has a "value" and return it, false otherwise
+ *
+ * @TODO Make this make sense, this isn't doing what I want it to do
+ *
+ * @param mixed $resource
+ * @return mixed
+ */
+function value($resource){
+    if ($resource){
+        if (is_object($resource) || is_array($resource) || is_resource($resource)){
+            return $resource;
+        } else {
+            $cast = strval($resource);
+            if ($cast != '' && $cast != 'null'){
+                return $cast;
+            }
+        }
+    }
+    return false;
+}
+
 
