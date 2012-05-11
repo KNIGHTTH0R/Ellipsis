@@ -190,6 +190,7 @@ class Ellipsis {
                 // process rewrite_path
                 if (!preg_match('/\$\{/', $route['rewrite_path'])){
                     $_ENV['CACHE_TIME'] = $route['cache'];
+
                     self::load_path($route['rewrite_path']);
                 }
             }
@@ -392,10 +393,12 @@ class Ellipsis {
      */
     public static function debug($message, $data = null){
         if ($_ENV['DEBUG']){
-            if ($data != null){
-                ChromePhp::log("{$_SERVER['PATH_INFO']}: {$message}", $data);
-            } else {
-                ChromePhp::log("{$_SERVER['PATH_INFO']}: {$message}");
+            if (PHP_SAPI != 'cli'){
+                if ($data != null){
+                    ChromePhp::log("{$_SERVER['PATH_INFO']}: {$message}", $data);
+                } else {
+                    ChromePhp::log("{$_SERVER['PATH_INFO']}: {$message}");
+                }
             }
         }
     }
@@ -735,16 +738,8 @@ class Ellipsis {
         header("Content-Type: $mime_type");
 
         // load path resource
-       if($_ENV['CURRENT'] == null)
-        {
-            // website route
-            $htdocs_root = "{$_ENV['WEBSITE_ROOT']}/htdocs/";
-            
-        }else{
-            // app route
-            $htdocs_root = "{$_ENV['APPS'][$_ENV['CURRENT']]['APP_SRC_ROOT']}/htdocs/";
-        }
-        if (is_file("{$htdocs_root}{$path}")){
+        $htdocs_root = ($_ENV['CURRENT'] == null) ? null : "{$_ENV['APPS'][$_ENV['CURRENT']]['APP_SRC_ROOT']}/htdocs/";
+        if ($htdocs_root != null && is_file("{$htdocs_root}{$path}")){
             if (preg_match('/\.php$/', $path)){
                 include "{$htdocs_root}{$path}";
             } else {
@@ -773,7 +768,7 @@ class Ellipsis {
         // test for errors
         if (count($_ENV['ERRORS']) > 0){
             self::dump_error_messages();
-            exit;
+            //exit;
         }
 
         // collect debug data (if debug is set)
@@ -807,7 +802,7 @@ class Ellipsis {
         ob_end_flush();
 
         // real exit
-        exit;
+        //exit;
     }
 
 } Ellipsis::initialize();
