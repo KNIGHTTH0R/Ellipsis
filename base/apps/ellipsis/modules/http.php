@@ -60,7 +60,7 @@ class HTTP {
         // set default curl options
         $this->options = array(
             CURLOPT_SSL_VERIFYPEER  => 1,
-            CURLOPT_CAINFO          => realpath(dirname(__FILE__) . '/certificates/cacert.pem'),
+            CURLOPT_CAINFO          => "{$_ENV['APPS']['ellipsis']['APP_SRC_ROOT']}/assets/cacert.pem",
             CURLOPT_ENCODING        => 'gzip,deflate,sdch',
             CURLOPT_FOLLOWLOCATION  => 0,
             CURLOPT_MAXREDIRS       => 5,
@@ -265,9 +265,22 @@ class HTTP {
             if ($response->error == ''){
                 // capture response data
                 // (strip additional HTTP headers, which aren't accounted for in CURLINFO_HEADER_SIZE)
-                $split = preg_split('/(\r\n){2,}/', $result);
-                $header = $split[count($split)-2];
-                $body = $split[count($split)-1];
+                $lines  = preg_split('/\r\n/', $result);
+                $header = '';
+                $body   = '';
+                $pass   = 1;
+                foreach($lines as $line){
+                    if ($pass == 1){
+                        if (empty($line)){
+                            // headers are over
+                            $pass = 2;
+                        } else {
+                            $header .= "{$line}\n";
+                        }
+                    } else {
+                        $body .= "{$line}\n";
+                    }
+                }
 
                 // parse the Location header
                 // per http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.30
