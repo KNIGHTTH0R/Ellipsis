@@ -720,18 +720,21 @@ class Ellipsis {
      * load the destination path resource and exit
      *
      * @param string $path
+     * @param string $mime_type
      * @return void
      */
-    public static function load_path($path){
+    public static function load_path($path, $mime_type = null){
         // find appropriate mime type
-        if (preg_match('/\.php$/', $_SERVER['PATH_INFO'])){
-            $mime_type = 'text/html';
-        } else if (preg_match('/\.[a-z0-9]+$/', $_SERVER['PATH_INFO'])){
-            $mime_type = getmimetype($_SERVER['PATH_INFO']);
-        } else if (preg_match('/\.php$/', $path)){
-            $mime_type = 'text/html';
-        } else {
-            $mime_type = getmimetype($path);
+        if ($mime_type == null){
+            if (preg_match('/\.php$/', $_SERVER['PATH_INFO'])){
+                $mime_type = 'text/html';
+            } else if (preg_match('/\.[a-z0-9]+$/', $_SERVER['PATH_INFO'])){
+                $mime_type = getmimetype($_SERVER['PATH_INFO']);
+            } else if (preg_match('/\.php$/', $path)){
+                $mime_type = 'text/html';
+            } else {
+                $mime_type = getmimetype($path);
+            }
         }
 
         // output content type header
