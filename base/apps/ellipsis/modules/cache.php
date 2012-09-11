@@ -29,10 +29,10 @@ class Cache {
 
         // generate a filepath unique to this meta info
         $filehash   = md5(serialize($meta));
-        $filepath   = $_ENV['CACHE_DIR'] . '/objects/' . $filehash . '.json';
+        $filepath   = $_ENV['WEBSITE_CACHE_ROOT'] . '/objects/' . $filehash . '.json';
 
         // store results as json for a shorter trip next time around
-        if (is_writable($_ENV['CACHE_DIR'] . '/objects/')){
+        if (is_writable($_ENV['WEBSITE_CACHE_ROOT'] . '/objects/')){
             $encoded = json_encode(array('data' => $data, 'expires' => (time() + $seconds)));
             if (@file_put_contents($filepath, $encoded) !== false) return true;
         }
@@ -50,7 +50,7 @@ class Cache {
     public static function get($meta){
         // generate the filepath that was used for this meta info
         $filehash   = md5(serialize($meta));
-        $filepath   = $_ENV['CACHE_DIR'] . '/objects/' . $filehash . '.json';
+        $filepath   = $_ENV['WEBSITE_CACHE_ROOT'] . '/objects/' . $filehash . '.json';
 
         if (is_file($filepath) && is_readable($filepath)){
             $content = file_get_contents($filepath);
