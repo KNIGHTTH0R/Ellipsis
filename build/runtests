@@ -1,0 +1,76 @@
+#!/usr/bin/php
+<?php
+
+include "../base/apps/ellipsis/bin/cli.php";
+CLI::process("
+    Usage:
+        runtests
+
+    Description:
+        Run the auto documentation script against this Ellipsis installation and output the results to http://sitename/docs/index.html.
+
+    Options:
+        [-c, --cmd]         Run in command mode (defaults to web mode)
+        [-s, --single=APP]  Test a single application (default is all)
+
+    Arguments:
+        none
+");
+
+// get ready
+$base = dirname(__FILE__) . '../base/apps';
+include $base . '/ellipsis/lib/ellipsis.php';
+
+if ($_ENV['opts']['single']){
+    // process a single application
+    if (is_dir($base . '/' . $_ENV['opts']['single'])){
+        // gather the tests
+        if (is_dir($base . '/' . $_ENV['opts']['single'] . '/tests')){
+            $tests = scandir_recursive($base . '/' . $_ENV['opts']['single'] . '/tests', null, array('.git', '.svn', 'logs', 'fixtures'));
+            if ($tests){
+                // pretend to be in a web environment
+                if (!$_ENV['opts']['cmd']) pretend();
+
+                // load ellipsis
+                include $base . '/ellipsis/ellipsis.php';
+
+                // load simpletest
+                require_once('simpletest/unit_tester.php');
+                require_once('simpletest/reporter.php');
+                require_once('simpletest/mock_objects.php');
+
+                // create the test suite
+                $suite = new TestSuite($_ENV['opts']['single'] . ' tests');
+                foreach($tests as $test){
+                    $suite->addFile($test);
+                }
+
+                // run the tests
+                $suite->run(new TextReporter());
+                exit;
+            } else {
+                // no tests were found
+                die("WARNING: app {$_ENV['opts']['single']} contains no tests");
+            }
+        }
+    } else {
+        // app was not found
+        die("ERROR: app {$_ENV['opts']['single']} was not found");
+    }
+} else {
+    // find all applications and recurse them
+    $apps = scandir($base . '/');
+    echo 'apps: '; 
+    var_dump($apps);
+    foreach($apps as $app){
+        if (is_dir($base . '/' . $app)){
+            $temp = basename($app);
+            if (preg_match('/^([a-z0-9_-]+)$/', $temp) && !in_array($temp, array('.', '..', '.cached'))){
+                $system_call = 'php runtests ' . ($_ENV['opts']['cmd'] ? '-c ' : '') . '-s ' . basename($app);
+                echo "system call: $system_call";
+                system($system_call);
+            }
+        }
+    }
+}
+
