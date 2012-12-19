@@ -43,10 +43,20 @@ class Ellipsis {
             $write = true;
         } else {
             $hash = md5($website_file);
-            if (touch_recursive("{$website_file}.{$hash}.tmp") && touch_recursive("{$expiration_file}.{$hash}.tmp")){
+            $touchcache = touch_recursive("{$website_file}.{$hash}.tmp");
+            $touchexpire = touch_recursive("{$expiration_file}.{$hash}.tmp",true);
+            if ($touchcache && $touchexpire){
                 @unlink("{$website_file}.{$hash}.tmp");
                 @unlink("{$expiration_file}.{$hash}.tmp");
                 $write = true;
+            }else{
+                self::log(__LINE__, "server doc root", $_SERVER['DOCUMENT_ROOT'], 'error'); 
+                if(!$touchcache){
+                    self::log(__LINE__, "unable to touch cache {$website_file}.{$hash}.tmp", 0, 'error');                    
+                }
+                if(!$touchexpire){
+                    self::log(__LINE__, "unable to touch expiration {$expiration_file}.{$hash}.tmp", 0, 'error');                    
+                }
             }
         }
 
@@ -64,7 +74,9 @@ class Ellipsis {
             file_put_contents($expiration_file, $expiration_time);
 
             // output debug information
-            self::debug("Cache Time: " . date('l jS \of F Y h:i:s A T', $cache_time));
+            self::debug("Cache Time: " . date('l jS \of F Y h:i:s A T', $expiration_time));
+        }else{
+            self::log(__LINE__, "unable to write to cache", 0, 'error');            
         }
     }
 
@@ -86,26 +98,36 @@ class Ellipsis {
      * @return void
      */
     private static function dump_error_messages(){
-        $format = self::get_output_format();
-        switch($format){
-            case 'html':
-                echo "<h1>Internal Error" . (count($_ENV['ERRORS']) > 1 ? "s" : "") . "</h1>";
-                foreach($_ENV['ERRORS'] as $error){
-                    echo "<h3>{$error['type']}</h3>";
-                    echo "<div>{$error['message']} in {$error['file']} on line {$error['line']}</div>";
-                }
-                break;
-            case 'json':
-                echo json_encode(array('errors' => $_ENV['ERRORS']));
-                break;
-            case 'text':
-                echo "Internal Error" . (count($_ENV['ERRORS']) > 1 ? "s" : "") . "\n";
-                echo "----------------------------------------------------------------------\n\n";
-                foreach($_ENV['ERRORS'] as $error){
-                    echo "{$error['type']}\n";
-                    echo "{$error['message']} in {$error['file']} on line {$error['line']}\n\n";
-                }
-                break;
+        // should we output errors?
+        $error_reporting_level = ini_get('error_reporting');
+        $show_errors = false;
+        foreach($_ENV['ERRORS'] as $error){
+            if($error_reporting_level & $error['number']){
+                $show_errors = true;
+            }
+        }
+        if($show_errors === true){
+            $format = self::get_output_format();
+            switch($format){
+                case 'html':
+                    echo "<h1>Internal Error" . (count($_ENV['ERRORS']) > 1 ? "s" : "") . "</h1>";
+                    foreach($_ENV['ERRORS'] as $error){
+                        echo "<h3>{$error['type']}</h3>";
+                        echo "<div>{$error['message']} in {$error['file']} on line {$error['line']}</div>";
+                    }
+                    break;
+                case 'json':
+                    echo json_encode(array('errors' => $_ENV['ERRORS']));
+                    break;
+                case 'text':
+                    echo "Internal Error" . (count($_ENV['ERRORS']) > 1 ? "s" : "") . "\n";
+                    echo "----------------------------------------------------------------------\n\n";
+                    foreach($_ENV['ERRORS'] as $error){
+                        echo "{$error['type']}\n";
+                        echo "{$error['message']} in {$error['file']} on line {$error['line']}\n\n";
+                    }
+                    break;
+            }
         }
     }
 
@@ -150,6 +172,7 @@ class Ellipsis {
             if ($route['closure']){
                 // capture the current cache setting (might need to undo)
                 $cache_time = $_ENV['CACHE_TIME'];
+                self::log(__LINE__, "route cache value (closure)", $route['cache'], 'debug');
                 $_ENV['CACHE_TIME'] = $route['cache'];
 
                 // process these instructions as a closure
@@ -159,6 +182,7 @@ class Ellipsis {
                     exit;
                 } else {
                     // undo cache setting
+                    self::log(__LINE__, "undoing cache time", $cache_time, 'debug');
                     $_ENV['CACHE_TIME'] = $cache_time;
 
                     if (is_string($result)){
@@ -189,6 +213,7 @@ class Ellipsis {
 
                 // process rewrite_path
                 if (!preg_match('/\$\{/', $route['rewrite_path'])){
+                    self::log(__LINE__, "route cache value after process check", $route['cache'], 'debug');
                     $_ENV['CACHE_TIME'] = $route['cache'];
 
                     self::load_path($route['rewrite_path']);
@@ -380,8 +405,22 @@ class Ellipsis {
      * @param void
      * @return void
      */
-    public static function clean_buffers(){
+    public static function clean_buffers($ignore_time=false){
         // locate cached buffers that have expired and delete them
+
+        // define the buffer website file
+        $website_dir = $_SERVER['DOCUMENT_ROOT'];
+
+        // define the buffer expiration file
+        $expiration_dir = "{$_ENV['WEBSITE_CACHE_ROOT']}/expirations";
+
+        $cache_files = scandir_recursive($expiration_dir,"relative");
+
+        self::log(__LINE__,"files in cache",$cache_files,"debug");
+        foreach ($cache_files as $key => $value) {
+            @unlink($website_dir . $value);
+            @unlink($expiration_dir . $value);
+        }
     }
 
     /**
@@ -490,10 +529,16 @@ class Ellipsis {
      * @param string $message
      * @return void
      */
-    public static function fail($code, $message = null){
-        $format = self::get_output_format();
+    public static function fail($code, $message = null, $format = null){
+        // set header to code
+        header(':', true, $code);
+
+        // check format
+        if(is_null($format)){
+            $format = self::get_output_format();
+        }
         if (isset($_ENV['HTTP_CODE'][$code])){
-            self::debug("{$code} - {$message}", $_ENV['HTTP_CODE'][$code]);
+            // self::debug("{$code} - {$message}", $_ENV['HTTP_CODE'][$code]);
             if (isset($_ENV['HTTP_CODE'][$code]['path'])){
                 if (is_file($_ENV['APPS'][$_ENV['CURRENT']]['SCRIPT_ROOT'] . '/' . $_ENV['HTTP_CODE'][$code]['path'])){
                     $PARAMS['ERROR_CODE'] = $code;
@@ -510,15 +555,22 @@ class Ellipsis {
                         echo "<div onmouseover=\"this.innerHTML='" . preg_quote($_ENV['HTTP_CODE'][$code]['translation'], "'") . "';\" onmouseout=\"this.innerHTML='" . preg_quote($_ENV['HTTP_CODE'][$code]['description'], "'") . "';\">{$_ENV['HTTP_CODE'][$code]['description']}</div>";
                         break;
                     case 'json':
-                        echo json_encode(
-                            array(
-                                'error' => array(
-                                    'title' => "{$code} - {$_ENV['HTTP_CODE'][$code]['title']}",
-                                    'description' => $_ENV['HTTP_CODE'][$code]['description'],
-                                    'translation' => $_ENV['HTTP_CODE'][$code]['translation']
+                        // check if message is an array or object
+                        if(!is_null($message)){
+                            if(is_array($message) || is_object($message)){
+                                echo json_encode($message);
+                            }
+                        }else{
+                            echo json_encode(
+                                array(
+                                    'error' => array(
+                                        'title' => "{$code} - {$_ENV['HTTP_CODE'][$code]['title']}",
+                                        'description' => $_ENV['HTTP_CODE'][$code]['description'],
+                                        'translation' => $_ENV['HTTP_CODE'][$code]['translation']
+                                    )
                                 )
-                            )
-                        );
+                            );
+                        }
                         break;
                     case 'text':
                         echo "{$code} - {$_ENV['HTTP_CODE'][$code]['title']}\n";
@@ -797,6 +849,7 @@ class Ellipsis {
         }
 
         // cache the output (if cache is set)
+        self::log(__LINE__, "Cache Time", $_ENV['CACHE_TIME'], 'debug');
         if ($_ENV['CACHE_TIME'] > 0){
             self::cache_buffer($_ENV['CACHE_TIME']);
         }
@@ -807,6 +860,71 @@ class Ellipsis {
         // real exit
         //exit;
     }
+
+    /**
+     * log output for activity monitoring purposes
+     *
+     * @param int $line
+     * @param string $message
+     * @param mixed $args
+     * @param string $type (info, debug, warning, success, error)
+     * @return void
+     */
+    public static function log($line, $message, $args = null, $type = null){
+        // define potential output colors
+        $colors = array(
+            'black'      => '0;30', 'dark_gray'    => '1;30',
+            'blue'       => '0;34', 'light_blue'   => '1;34',
+            'green'      => '0;32', 'light_green'  => '1;32',
+            'cyan'       => '0;36', 'light_cyan'   => '1;36',
+            'red'        => '0;31', 'light_red'    => '1;31',
+            'purple'     => '0;35', 'light_purple' => '1;35',
+            'brown'      => '0;33', 'yellow'       => '1;33',
+            'light_gray' => '0;37', 'white'        => '1;37'
+        );
+
+        // locate the log file
+        $log_file = "{$_ENV['WEBSITE_LOG_ROOT']}/activity.log";
+        $log_handle = fopen($log_file, 'a');
+        if ($log_handle){
+
+            // create a timestamp for this entry
+            $timestamp = date("Y-m-d H:i:s T");
+            $arguments = ($args) ? " :: " . print_r($args, true) : '';
+
+            // select the appropriate font color
+            $color = null;
+            switch($type){
+                case 'info':
+                    $color = 'white';
+                    break;
+                case 'debug':
+                    $color = 'light_blue';
+                    break;
+                case 'warning':
+                    $color = 'light_red';
+                    break;
+                case 'success':
+                    $color = 'green';
+                    break;
+                case 'error':
+                    $color = 'red';
+                    break;
+            }
+
+            // create the line to be printed
+            if ($color != null){
+                $log_line = "\033[{$colors[$color]}m" . str_pad('[' . strtoupper($type) . ']', 9, ' ') . " :: {$timestamp} :: {$message} {$arguments} :: (LINE {$line})\033[0m\n";
+            } else {
+                $log_line = "{$timestamp} :: {$message} {$arguments} :: (LINE {$line})\n";
+            }
+
+            // output
+            fwrite($log_handle, $log_line);
+            fclose($log_handle);
+        }
+    }
+
 
 } Ellipsis::initialize();
 

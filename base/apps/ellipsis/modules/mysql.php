@@ -50,9 +50,15 @@ class Mysql {
                     if (mysql_select_db($_ENV['MYSQL_NAME'], $connection)){
                         self::$connection = $connection;
                         return true;
-                    }
-                }
-            }
+                    }else{
+											self::$errors[] = mysql_error();
+										}
+                }else{
+									self::$errors[] = mysql_error();
+								}
+            }else{
+							self::$errors[] = 'Connection parameters not set';
+						}
         }
         return false;
     }
@@ -95,17 +101,21 @@ class Mysql {
             if (is_array($data)){
                 $matches = substr_count($sql, '%s');
                 if ($matches == count($data)){
-                    foreach($data as $value){
-                        $sql = preg_replace('/[\'"]*\%s[\'"]*/', '0x'.asciihex($value), $sql, 1); 
+                    foreach($data as $key=>$value){
+                        $sql = preg_replace('/[\'"]*\%s[\'"]*/', '0x'.asciihex($value), $sql, 1);
+                        // $data[$key] = '0x'.asciihex($value);
                     }
+                    // $sql = vsprintf($sql, $data);
                     $sql = preg_replace('/0x([^0-9a-f])/', "''\\1", $sql);
                 } else {
                     $sql = null;
+                    self::$errors[] = 'Data array does not match column count';
                 }
             }
             if ($sql != null){
                 $sql = self::sanitize($sql);
                 if ($sql != null){
+                    // Ellipsis::log(__LINE__,"query:",$sql,'debug');
                     $result = mysql_query($sql, self::$connection);
                     if ($result !== false){
                         $matched = preg_match('/(\w+\s){1}/m', $sql,$statement);
@@ -135,10 +145,17 @@ class Mysql {
                         }
                     }else{
                         self::$errors[] = mysql_error();
+                        Ellipsis::log(__LINE__,"query failed",self::$errors,'error');
                     } 
-                }
-            }
-        }
+                }else{
+									self::$errors[]= "Query died in sanitization";
+								}
+            }else{
+							self::$errors[]= "No Query";
+						}
+        }else{
+					self::$errors[]= "No Connection";
+				}
         return null;
     }
 }

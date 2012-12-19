@@ -70,5 +70,28 @@ class Cache {
         // couldn't find data
         return null;
     }
+
+    /** 
+     * clear cache data (expire all)
+     * 
+     * @param void
+     * @return boolean
+     */
+    public static function clear(){
+        $filepath   = $_ENV['WEBSITE_CACHE_ROOT'] . '/objects/';
+        if (is_dir($filepath) === true)
+        {
+            $files = array_diff(scandir($filepath), array('.', '..'));
+
+            foreach ($files as $file)
+            {
+                Delete(realpath($filepath) . '/' . $file);
+            }
+
+            return true;
+        }
+
+        return false;        
+    }
 }
 

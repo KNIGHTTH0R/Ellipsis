@@ -393,7 +393,7 @@ function pluralize($noun){
 function preg_array($regexp, $haystack){
     // extract each recursive value
     $values = array();
-    array_walk_recursive($haystack, create_function('$val, $key, $obj', 'array_push($obj, $val);'), &$values);
+    array_walk_recursive($haystack, create_function('$val, $key, &$obj', 'array_push($obj, $val);'), $values);
     foreach($values as $value){
         if (preg_match($regexp, $value)){
             return true;
@@ -586,8 +586,8 @@ function tmpdir(){
  * @param string $path
  * @return boolean
  */
-function touch_recursive($path){
-    if (!preg_match('/^' . preg_quote($_SERVER['DOCUMENT_ROOT'], '/') . '/', $path)){
+function touch_recursive($path,$override=false){
+    if (!preg_match('/^' . preg_quote($_SERVER['DOCUMENT_ROOT'], '/') . '/', $path) && !$override){
         // for safety's sake
         return false;
     }
@@ -621,5 +621,3 @@ function value($resource){
     }
     return false;
 }
-
-
